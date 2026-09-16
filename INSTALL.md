@@ -2,6 +2,9 @@
 
 For testers. Chrome or any Chromium browser (Edge, Brave, Arc).
 
+Want to read or build the source instead? See `BUILD.md` in the repository —
+there is no build step, so the code you can read is exactly the code that runs.
+
 ## Install
 
 1. Unzip `riftatlas-replay-0.1.0.zip` somewhere you can leave it — Chrome loads
