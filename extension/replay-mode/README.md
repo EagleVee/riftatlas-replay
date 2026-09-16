@@ -51,6 +51,27 @@ control bar moved and the board did not. Replay mode now sends a monotonic wire
 sequence and carries the state of whatever replay sequence the cursor is on. The
 replay's real sequence stays in the control bar, where a viewer reads it.
 
+## The control bar
+
+Fixed geometry: 520x46, centred, and it does not move. Nothing in it resizes as
+the cursor moves, because the board is what you are reading and a bar that
+reflows under the pointer makes stepping feel unreliable.
+
+That rules out a few things the first version did wrong:
+
+- **No log text.** The client already narrates the match in its own panel, top
+  right. Repeating it here meant the bar's width tracked the length of whatever
+  just happened. The text is now a tooltip on the bar.
+- **No room code in the badge.** A variable-length code is a variable-width
+  badge. The client shows the room in its own header.
+- **Single-glyph buttons at a fixed 30x30.** The old ASCII `|<` and `>|` wrapped
+  onto two lines when the bar was squeezed.
+- **Tabular figures on the counter**, with width reserved for the largest value,
+  so `9/370` and `370/370` occupy the same space.
+
+The freed width went to a scrub slider, so any position is one drag away rather
+than a few hundred clicks.
+
 ## Known limits
 
 - **Their UI, their rules.** It breaks whenever RiftAtlas changes the client, and
