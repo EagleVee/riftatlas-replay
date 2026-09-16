@@ -63,6 +63,11 @@ match lands at roughly 550 KiB uncompressed, well under 150 KiB gzipped.
     }
   ],
 
+  // The room shell document as the server sent it, credentials stripped. Not
+  // needed to render a replay ourselves, but it is what puts RiftAtlas' own
+  // client into the game view, so a replay can be handed to their UI.
+  "shell": { "roomCode": "3NKJ3", "viewer": { }, "selfPlayer": { }, "publicPlayers": [] },
+
   // Base state. Exactly an `authoritative_snapshot` payload.
   "origin": {
     "sequence": 0,

@@ -87,6 +87,39 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === 'replayMode') {
+    (async () => {
+      const row = await get(REPLAYS, msg.roomCode);
+      if (!row) return sendResponse({ ok: false, error: 'build the replay first' });
+
+      const [tab] = await chrome.tabs.query({ url: 'https://play.riftatlas.com/*' });
+      const target = tab ?? await chrome.tabs.create({ url: 'https://play.riftatlas.com/' });
+      if (!tab) await new Promise((r) => setTimeout(r, 3500));
+      await chrome.tabs.update(target.id, { active: true });
+
+      // Arming and injection are two separate steps in the page's own world:
+      // the replay is handed over first, then the injector consumes it.
+      const armed = await chrome.scripting.executeScript({
+        target: { tabId: target.id }, world: 'MAIN',
+        func: (replay) => {
+          if (window.__riftatlasLiveMatch) return { ok: false, error: 'a live match is open in this tab' };
+          window.__riftatlasReplayArm = { replay };
+          return { ok: true };
+        },
+        args: [row.replay],
+      });
+      const first = armed[0]?.result;
+      if (!first?.ok) return sendResponse(first ?? { ok: false, error: 'could not arm' });
+
+      await chrome.scripting.executeScript({
+        target: { tabId: target.id }, world: 'MAIN',
+        files: ['replay-mode/inject.js'],
+      });
+      sendResponse({ ok: true, roomCode: msg.roomCode });
+    })().catch((e) => sendResponse({ ok: false, error: e.message }));
+    return true;
+  }
+
   if (msg?.type === 'openPlayer') {
     chrome.tabs.create({ url: chrome.runtime.getURL('player/player.html') });
     return false;

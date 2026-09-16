@@ -45,6 +45,12 @@ async function refresh() {
         const res = await send({ type: 'export', roomCode: row.roomCode });
         if (!res?.ok) sub.textContent = res?.error ?? 'export failed';
       }),
+      button('In RiftAtlas UI', async () => {
+        const res = await send({ type: 'replayMode', roomCode: row.roomCode });
+        sub.textContent = res?.ok
+          ? `replay mode armed — join room ${row.roomCode} in the lobby`
+          : (res?.error ?? 'could not start replay mode');
+      }),
       button(row.hasReplay ? 'Rebuild' : 'Build', async () => {
         await send({ type: 'finalise', roomCode: row.roomCode });
         refresh();
