@@ -23,8 +23,13 @@ if 'icons' not in m: problems.append('manifest has no icons')
 for size, rel in (m.get('icons') or {}).items():
     if not (root / 'extension' / rel).exists(): problems.append(f'missing icon {rel}')
 if not m.get('description'): problems.append('manifest has no description')
-for key in ('key', 'update_url'):
-    if key in m: problems.append(f'manifest still carries a dev-only "{key}"')
+if 'update_url' in m: problems.append('manifest carries a dev-only "update_url"')
+# `key` pins the extension id across folders, so an update lands on the same
+# extension and keeps its recordings. Required for anything handed to a tester;
+# it is only wrong for a Chrome Web Store upload, where the store owns the key.
+if 'key' not in m:
+    problems.append('manifest has no "key" — every install would get a fresh, '
+                    'empty database (pass --store to build for the Web Store)')
 if problems:
     print('cannot package:'); [print('  -', p) for p in problems]; raise SystemExit(1)
 print(f"manifest ok: {m['name']} {m['version']}")
