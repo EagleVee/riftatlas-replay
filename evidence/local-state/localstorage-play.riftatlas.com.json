@@ -1,0 +1,39 @@
+{
+  "_note": "Captured 2026-09-16 from play.riftatlas.com, signed-in player seat \"EagleV\". JSON-encoded string values have been expanded for readability. The __clerk_environment key was omitted: it is a large cache of Clerk's public instance config (OAuth providers, password policy, hosted URLs) and carries no app state. No credential is present here - the Clerk session token lives in cookies, not localStorage.",
+  "keys": {
+    "riftbound_simulator_game_info_hint_seen_v1": 1,
+    "riftbound_telemetry_client_id_v1": "9cf69f79-40dd-4773-bc67-8d9d71d5f91c",
+    "riftbound_simulator_play_mode": "constructed",
+    "riftbound-post-game-feedback-last-shown-at-v1": 1789463674413,
+    "riftbound_feedback_client_id_v1": "6e2f3710-2037-4698-9b5e-4cd93a8c7db8",
+    "riftatlas.analytics_sample.v1": "in",
+    "riftbound_simulator_hosted_match_format:v1": "bo1",
+    "riftatlas.cosmetics-seen.v1": [
+      "token:gold:loot-pixie-gold",
+      "token:sandSoldier:loot-pixie-sand-soldier",
+      "token:shadowClone:loot-pixie-shadow-clone",
+      "deck_sleeve_loot_pixie_poro_pack"
+    ],
+    "riftbound_session_telemetry_v2.b11437b0-31d0-4e07-b4d8-7dc8f134ccf7": {
+      "version": 1,
+      "sessionId": "ed6b3fd0-ab9e-4940-b72a-6378b21e3885",
+      "startedAt": 1789535726960,
+      "lastSeenAt": 1789535726960,
+      "cleanEnd": false,
+      "lastVisibilityState": "visible",
+      "inGame": false,
+      "roomCode": null,
+      "roomPhase": null,
+      "maxHeapMb": null,
+      "heapLimitMb": null,
+      "errorCount": 0,
+      "recentErrors": [],
+      "recentActions": []
+    },
+    "riftbound_simulator_active_constructed_deck": {
+      "kind": "saved",
+      "savedDeckId": "kx747x86np20crwh1289zkaq5s8ee5p5"
+    },
+    "riftbound_simulator_player_name": "EagleV"
+  }
+}

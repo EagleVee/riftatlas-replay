@@ -112,9 +112,24 @@ Phases seen: `battlefield_pick` → `initiative_roll` → `first_player_choice` 
 }
 ```
 
-The last three are optional. Hidden cards are the bare string
-`"__hidden_zone__:<playerId>"` in place of an object — code that walks zones must
-handle both.
+The last three are optional.
+
+A masked card is a **stub object in the same position**, not a bare string:
+
+```json
+{
+  "id": "__hidden_zone__:plr_72272ae6:deck:0", "name": "",
+  "source": "mainDeck", "exhausted": false,
+  "createdAt": 0, "isPlaceholder": true
+}
+```
+
+Detect masking with `isPlaceholder === true`, not by string-matching the id.
+Stubs have no `cardCode`, `type`, `keywords` or `ownerPlayerId`, so any code
+reading those fields must tolerate their absence.
+
+Masking applies to the viewer's **own** `deck` and `runeDeck` as well as the
+opponent's — only the viewer's `hand` is revealed to them.
 
 ### Gameplay log entry
 

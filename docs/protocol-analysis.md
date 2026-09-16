@@ -58,11 +58,19 @@ a computation.
 
 ## The hard constraint: captures are viewer-scoped
 
-Hidden zones are masked per viewer before the server sends them. An opposing
-player's deck, hand and rune deck arrive as `__hidden_zone__:plr_xxxxxxxx`
-placeholder strings — one per card, so counts are accurate but identities are
-not. In the final snapshot of this capture, the recording player's hand shows ten
-named cards while the opponent's shows four opaque placeholders.
+Hidden zones are masked per viewer before the server sends them. A masked card
+arrives as a stub object — `isPlaceholder: true`, an empty `name`, and an id of
+the form `__hidden_zone__:<playerId>:<zone>:<index>` — one per card, so counts
+are accurate but identities are not. In the final snapshot of this capture, the
+recording player's hand shows ten named cards while the opponent's shows four
+stubs.
+
+The masking is stricter than "you see your own cards". **The viewer's own deck
+and rune deck are masked from the viewer too** — only the hand is revealed. The
+server holds the deck order and does not disclose it to its owner, which means a
+capture can never tell you what you were about to draw. That has direct
+consequences for reconstruction; see
+[`reconstruction-feasibility.md`](reconstruction-feasibility.md).
 
 **This is not a bug to work around, and we should not try.** The masking is the
 game's hidden-information model. It means:
