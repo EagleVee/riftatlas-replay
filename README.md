@@ -7,13 +7,16 @@ step and jump forward and backward across sequences, moves and chapters, with
 correct fog of war. The **recorder** — the part that observes a live match — is
 not built yet.
 
+**To watch a match you already captured**, load the extension
+([how](extension/README.md#installing-for-development)), click its icon, choose
+**Open player**, and drop your `.har` straight onto the page — it converts in
+the browser. A `.ratlas.json` replay works the same way.
+
 ```bash
 tests/run.sh path/to/capture.har      # build a replay and check it end to end
-cd extension && python3 -m http.server 8731
-# http://127.0.0.1:8731/player/player.html?src=<replay>.ratlas.json
 ```
 
-See [`extension/README.md`](extension/README.md) for controls.
+See [`extension/README.md`](extension/README.md) for controls and install steps.
 
 Built with the permission of the RiftAtlas owner.
 
