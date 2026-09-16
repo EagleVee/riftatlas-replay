@@ -72,6 +72,30 @@ That rules out a few things the first version did wrong:
 The freed width went to a scrub slider, so any position is one drag away rather
 than a few hundred clicks.
 
+## Playback
+
+One step per second. The middle button carries three states in one fixed 30x30
+slot, so swapping glyphs cannot move anything:
+
+| Glyph | State |
+|---|---|
+| `▶` | stopped — play |
+| `⏸` | playing — pause |
+| `↻` | finished — replay from the start |
+
+Any manual control stops playback: stepping, jumping, or scrubbing. Otherwise
+the bar keeps advancing out from under someone who scrubbed somewhere
+deliberately to look at it.
+
+| Key | Action |
+|---|---|
+| space | play / pause / replay |
+| left, right | step |
+| Home, End | first, last |
+
+Keys are ignored while a text field has focus, so the client's chat and its own
+shortcuts keep working.
+
 ## Known limits
 
 - **Their UI, their rules.** It breaks whenever RiftAtlas changes the client, and
