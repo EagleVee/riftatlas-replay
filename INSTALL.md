@@ -79,9 +79,14 @@ It's version 0.1.0 and unpublished. Expect:
 
 ## Telling us something went wrong
 
-Useful: the room code, what you expected, what happened. If the popup shows the
-match but **Build** fails, say so — that points at a different bug than a match
-that never appeared at all.
+Hit **Debug dump** in the popup. It writes `riftatlas-replay-debug.json` to your
+Downloads with everything the recorder holds — raw commits included, so a
+recording that will not even build can still be diagnosed. Send that.
 
-Please don't send raw `.har` files: they contain a live auth token. An exported
-`.ratlas.json` is safe to share.
+It carries decklists and player names, and no credentials: the frames that carry
+tokens are discarded before anything is stored.
+
+Also useful: the room code, what you expected, and what happened instead.
+
+Please don't send raw `.har` files — those *do* contain a live auth token. An
+exported `.ratlas.json` or a debug dump is safe to share.

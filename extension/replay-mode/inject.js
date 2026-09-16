@@ -195,6 +195,8 @@ function begin(replay, ARM) {
   class FakeSocket extends EventTarget {
     constructor(url) {
       super();
+      // Tells the recorder's observer that these frames are ours, not a match.
+      this.__riftatlasSynthetic = true;
       this.url = String(url);
       this.readyState = 0;
       this.bufferedAmount = 0;
@@ -277,6 +279,9 @@ function begin(replay, ARM) {
   for (const k of ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']) Intercepted[k] = Native[k];
   Intercepted.__riftatlasReplayMode = ROOM;
   window.WebSocket = Intercepted;
+  // Belt and braces: the observer also stands down entirely while replay mode
+  // is live, whichever order the two wrappers ended up in.
+  window.__riftatlasReplayModeActive = ROOM;
 
   // ---------------------------------------------------------------- controls
 
@@ -474,6 +479,34 @@ function begin(replay, ARM) {
 
   const mount = () => { document.body.append(bar); paint(); };
   if (document.body) mount(); else addEventListener('DOMContentLoaded', mount);
+
+  /**
+   * Get the client into the room.
+   *
+   * Intercepting the socket is not enough: the app only opens one once it
+   * believes it is in a room, and a fresh session sits in the lobby. So drive
+   * its own join control - type the room code, press Join - and let the
+   * intercept answer. Gives up quietly after a while rather than clicking at a
+   * page that has moved on.
+   */
+  function joinRoom() {
+    if (document.getElementById('riftatlas-replay-bar') && sockets.size) return;
+    const input = [...document.querySelectorAll('input')]
+      .find((i) => /AB12CD/i.test(i.placeholder ?? '') || /room/i.test(i.placeholder ?? ''));
+    const button = [...document.querySelectorAll('button')]
+      .find((b) => /join\s*\/?\s*spectate/i.test(b.innerText ?? ''));
+    if (!input || !button) return;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    setter?.call(input, ROOM);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    setTimeout(() => button.click(), 120);
+  }
+
+  let joinTries = 0;
+  const joinTimer = setInterval(() => {
+    if (sockets.size || ++joinTries > 40) { clearInterval(joinTimer); return; }
+    joinRoom();
+  }, 500);
 
   console.log(`[riftatlas-replay] replay mode armed for ${ROOM}: ${order.length} states`);
 }

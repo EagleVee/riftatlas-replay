@@ -3,6 +3,15 @@ const send = (msg) => chrome.runtime.sendMessage(msg);
 
 document.getElementById('open-player').onclick = () => send({ type: 'openPlayer' });
 
+document.getElementById('dump').onclick = async (e) => {
+  const button = e.currentTarget;
+  const was = button.textContent;
+  button.textContent = 'Dumping…';
+  const res = await send({ type: 'dump' });
+  button.textContent = res?.ok ? 'Saved' : (res?.error ?? 'failed');
+  setTimeout(() => { button.textContent = was; }, 2500);
+};
+
 function when(ms) {
   if (!ms) return '';
   const d = new Date(ms);

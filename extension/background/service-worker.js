@@ -7,7 +7,21 @@
  */
 import { onFrame, looksFinished } from './recorder.js';
 import { buildReplay } from './finalise.js';
-import { SESSIONS, REPLAYS, all, get, put, dropRoom } from './store.js';
+import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRoom } from './store.js';
+
+/**
+ * Build a data: URL for a download. Chunked, because spreading a large array
+ * into String.fromCharCode overflows the call stack - which is exactly how the
+ * first export silently did nothing at all.
+ */
+function jsonDataUrl(value) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return 'data:application/json;base64,' + btoa(binary);
+}
 
 /** Rooms whose socket closed or whose log announced a result, awaiting finalise. */
 const pendingFinalise = new Set();
@@ -111,11 +125,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (!row) { await finalise(msg.roomCode); row = await get(REPLAYS, msg.roomCode); }
       if (!row) return sendResponse({ ok: false, error: 'nothing recorded for this room' });
       // A data: URL keeps the download entirely local; no blob URL, no fetch.
-      const json = JSON.stringify(row.replay);
-      const url = 'data:application/json;base64,'
-        + btoa(String.fromCharCode(...new TextEncoder().encode(json)));
+      const url = jsonDataUrl(row.replay);
       chrome.downloads.download({ url, filename: `${msg.roomCode}.ratlas.json`, saveAs: true },
         () => sendResponse({ ok: !chrome.runtime.lastError, error: chrome.runtime.lastError?.message }));
+      return;
     })();
     return true;
   }
@@ -157,6 +170,31 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     // sitting on every future page load.
     unregisterArmingScripts();
     return false;
+  }
+
+  if (msg?.type === 'dump') {
+    // Everything the recorder holds, for a bug report: raw commits and
+    // snapshots included, so a recording that will not finalise can still be
+    // diagnosed. Carries decklists and player names, but no credentials -
+    // handshake frames are dropped before anything is stored.
+    (async () => {
+      try {
+        const dump = {
+          dumpedAt: new Date().toISOString(),
+          extensionVersion: chrome.runtime.getManifest().version,
+          sessions: await all(SESSIONS),
+          commits: await all(COMMITS),
+          extras: await all(EXTRAS),
+          replays: await all(REPLAYS),
+        };
+        chrome.downloads.download(
+          { url: jsonDataUrl(dump), filename: 'riftatlas-replay-debug.json', saveAs: false },
+          () => sendResponse({ ok: !chrome.runtime.lastError, error: chrome.runtime.lastError?.message }));
+      } catch (e) {
+        sendResponse({ ok: false, error: e.message });
+      }
+    })();
+    return true;
   }
 
   if (msg?.type === 'openPlayer') {
