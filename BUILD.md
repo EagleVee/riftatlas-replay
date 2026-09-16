@@ -92,8 +92,23 @@ target, which is what `tools/load-extension.mjs` handles.
 tools/package.sh              # writes dist/riftatlas-replay-<version>.zip
 ```
 
-It refuses to package a manifest that is missing icons or a description, or that
-carries dev-only keys. Bump `version` in `extension/manifest.json` first.
+It refuses to package a manifest that is missing icons, a description, or a
+`key`. Bump `version` in `extension/manifest.json` first.
+
+### About that `key`
+
+An unpacked extension normally takes its identity from the **folder it was
+loaded from**, so unzipping a new version somewhere else makes Chrome treat it
+as a different extension — with a different, empty database. Testers lose their
+recordings and do not find out until they look.
+
+The `key` in the manifest is a public key that pins the identity instead, so
+every install is the same extension wherever it sits on disk. Its private half
+lives outside the repository in `~/.riftatlas-replay-keys/key.pem` and is only
+needed to pack a `.crx`; losing it costs the pinned id, not the source.
+
+A Chrome Web Store upload must **not** carry `key` — the store owns the
+identity there. Strip it for a store build.
 
 `dist/` is gitignored. Hand the zip and `INSTALL.md` to a tester.
 

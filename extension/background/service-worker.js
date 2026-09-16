@@ -268,6 +268,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === 'clearRoomState') {
+    // Forget whatever room the client thinks it is in. The way out of
+    // "Couldn't reconnect to your game" when a replay left its room behind.
+    (async () => {
+      const [tab] = await chrome.tabs.query({ url: 'https://play.riftatlas.com/*' });
+      if (!tab) return sendResponse({ ok: false, error: 'open play.riftatlas.com first' });
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id }, world: 'MAIN',
+        func: () => {
+          localStorage.removeItem('riftbound_simulator_last_room');
+          sessionStorage.removeItem('riftbound_simulator_active_room');
+        },
+      });
+      await chrome.tabs.update(tab.id, { active: true, url: 'https://play.riftatlas.com/' });
+      sendResponse({ ok: true });
+    })().catch((e) => sendResponse({ ok: false, error: e.message }));
+    return true;
+  }
+
   if (msg?.type === 'openPlayer') {
     chrome.tabs.create({ url: chrome.runtime.getURL('player/player.html') });
     return false;

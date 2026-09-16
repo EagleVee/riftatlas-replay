@@ -537,18 +537,33 @@ function begin(replay, ARM) {
       JSON.stringify({ updatedAt: now, ownerTabId: tabId, session }));
 
     if (!location.pathname.startsWith('/game')) {
+      navigatingForReplay = true;
       location.replace('/game');
     }
   }
 
-  function leaveReplayMode() {
-    // Hand the viewer's own room state back before reloading.
+  /** Put the viewer's own room state back where we found it. */
+  function restoreRoomState() {
     if (previousRoomState.active === null) sessionStorage.removeItem(ROOM_KEYS.active);
     else sessionStorage.setItem(ROOM_KEYS.active, previousRoomState.active);
     if (previousRoomState.last === null) localStorage.removeItem(ROOM_KEYS.last);
     else localStorage.setItem(ROOM_KEYS.last, previousRoomState.last);
+  }
+
+  function leaveReplayMode() {
+    restoreRoomState();
     location.replace('/');
   }
+
+  // Clean up even when nobody presses the close button. Left behind, the room
+  // state makes the client try to rejoin a room that only ever existed as a
+  // replay, and it greets the next visit with "Couldn't reconnect to your
+  // game". `navigatingForReplay` keeps our own hop to /game from undoing the
+  // state we just wrote.
+  let navigatingForReplay = false;
+  addEventListener('pagehide', () => {
+    if (!navigatingForReplay) restoreRoomState();
+  });
 
   enterRoom();
 

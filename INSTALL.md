@@ -7,12 +7,25 @@ there is no build step, so the code you can read is exactly the code that runs.
 
 ## Install
 
-1. Unzip `riftatlas-replay-0.1.0.zip` somewhere you can leave it — Chrome loads
-   the extension from this folder every time it starts, so don't delete it.
+1. Unzip it somewhere you can leave it — Chrome loads the extension from this
+   folder every time it starts, so don't delete or move it.
 2. Open `chrome://extensions`.
 3. Turn on **Developer mode**, top right.
 4. Click **Load unpacked** and pick the unzipped folder (the one with
    `manifest.json` in it).
+
+## Updating
+
+**Unzip the new version over the old folder**, then press the reload arrow on
+the extension's card in `chrome://extensions`. Your recordings are kept.
+
+You can also unzip elsewhere and *Load unpacked* again — the extension has a
+pinned identity, so Chrome treats it as the same extension either way and your
+recordings follow it. Either way, remove the older entry only *after* the new
+one is working.
+
+> Recordings live in the extension's own storage. **Removing the extension
+> deletes them.** If you have a recording you care about, hit **Export** first.
 
 The RiftAtlas Replay icon appears in your toolbar. Pin it — you'll use it.
 
@@ -37,6 +50,12 @@ For each recording:
   opens the **live** room on their server if it still exists — the current
   board, with no history. It is not the replay.
 - **Delete** removes it.
+
+## If RiftAtlas says it can't reconnect to your game
+
+Press **Back to lobby** in the popup. Replay mode borrows the client's "which
+room am I in" state, and a version before 0.2.0 could leave it behind — so the
+client kept trying to rejoin a room that only ever existed as a replay.
 
 ## Watching a replay
 
