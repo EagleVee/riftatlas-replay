@@ -72,7 +72,23 @@ shape-agnostic and should cope, but "should" is not "does".
 
 **To answer:** capture one match of each variant the game offers.
 
-## 5. Match-end detection
+## 5. Match-end detection — partly answered 2026-09-16
+
+The concession in the reference capture arrived **only inside a snapshot**, not
+in any commit: the server pushed it while re-anchoring the client after a
+resync. Detection has to read snapshots as well as commits, or an ending is
+invisible on exactly the matches where something went wrong.
+
+Text matching is also treacherous. Looking for " wins" matches the initiative
+roll — *"BertoC wins initiative (16 vs 2) and decides who plays first."* — which
+happens on sequence 3 of every game. Concessions are now identified by the
+server's own `log_concession` id prefix, and a victory line must end with
+"wins." rather than merely contain the word.
+
+A normal victory is still unverified, which is why finalisation never relies on
+detection alone: the socket closing rebuilds regardless.
+
+## 5b. Match-end detection
 
 This match ended by concession, detectable via a gameplay-log entry
 (`"BertoC conceded. EagleV wins."`). Whether a normal win emits a comparable

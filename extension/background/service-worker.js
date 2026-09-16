@@ -91,9 +91,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         } catch { /* already filtered by onFrame */ }
       });
     } else if (msg.kind === 'close') {
-      // The socket URL carries the room code; finalise anything still open.
+      // Rebuild every session, finished or not. An early finalise - the
+      // initiative roll once read as a victory - must never be the last word,
+      // or the replay stays frozen wherever the detector misfired.
       all(SESSIONS).then((sessions) => {
-        for (const s of sessions) if (!s.finished) finalise(s.roomCode);
+        for (const s of sessions) finalise(s.roomCode);
       });
     }
     return false;
