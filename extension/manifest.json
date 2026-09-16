@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "RiftAtlas Replay",
+  "version": "0.1.0",
+  "description": "Records your RiftAtlas matches and replays them offline. Observes only - never sends, modifies, or delays a game action.",
+  "permissions": ["storage", "downloads"],
+  "host_permissions": ["https://play.riftatlas.com/*"],
+  "background": { "service_worker": "background/service-worker.js", "type": "module" },
+  "action": { "default_popup": "popup/popup.html", "default_title": "RiftAtlas Replay" },
+  "content_scripts": [
+    {
+      "matches": ["https://play.riftatlas.com/*"],
+      "js": ["main-world/socket-observer.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://play.riftatlas.com/*"],
+      "js": ["content/bridge.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["player/player.html"], "matches": ["https://play.riftatlas.com/*"] }
+  ]
+}

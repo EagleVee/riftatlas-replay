@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * The navigation index must report the measured shape of the reference match.
+ * The navigation index must report the measured shape of the REFERENCE match
+ * (room 3NKJ3). Point it at any other replay and every check fails by design -
+ * use tests/replay-smoke.mjs for a replay-agnostic structural check.
  * These numbers are facts about the capture, so a change here means either the
  * index regressed or the capture changed - both worth failing on.
  *
@@ -27,8 +29,9 @@ check('phase chapters', index.chapters.filter((c) => c.kind === 'phase').map((c)
 check('phase sequences', index.chapters.filter((c) => c.kind === 'phase').map((c) => c.sequence),
   [0, 2, 3, 4, 8, 10]);
 check('turn chapters', index.chapters.filter((c) => c.kind === 'turn').length, 14);
-check('turn 1 sequence', index.chapters.find((c) => c.id.startsWith('turn:1:')).sequence, 11);
-check('turn 9 sequence', index.chapters.find((c) => c.id.startsWith('turn:9:')).sequence, 139);
+const turnSeq = (n) => index.chapters.find((c) => c.id.startsWith(`turn:${n}:`))?.sequence ?? null;
+check('turn 1 sequence', turnSeq(1), 11);
+check('turn 9 sequence', turnSeq(9), 139);
 check('gaps', index.gaps, [{ from: 368, to: 369, missing: 1 }]);
 
 // Navigation round-trip: stepping to the end and back must land exactly on 0.
@@ -41,11 +44,12 @@ check('walk back to start', cursor.sequence, 0);
 // Fog must be restored when stepping backwards past a reveal.
 const timeline = timelineFromReplay(replay);
 const hiddenAt = (seq, playerId, zone) => {
-  const [state] = timeline.states.get(seq);
-  const cards = state.players.find((p) => p.id === playerId).board[zone] ?? [];
+  const entry = timeline.states.get(seq);
+  if (!entry || !playerId) return null;
+  const cards = entry[0].players.find((p) => p.id === playerId)?.board?.[zone] ?? [];
   return cards.filter((c) => c.isPlaceholder).length;
 };
-const opp = replay.players.find((p) => p.id !== replay.viewer.playerId).id;
+const opp = replay.players.find((p) => p.id !== replay.viewer.playerId)?.id;
 check('opponent hand hidden at seq 0 and at end',
   [hiddenAt(0, opp, 'hand'), hiddenAt(370, opp, 'hand') > 0],
   [0, true]);
