@@ -73,16 +73,25 @@ async function refresh() {
     const sub = document.createElement('div');
     sub.className = 'sub';
     const names = row.players?.map((p) => `${p.name} ${p.finalScore ?? ''}`.trim()).join('  v  ');
-    sub.textContent = [when(row.startedAt), names, row.match?.matchFormat].filter(Boolean).join('  ·  ');
+    sub.textContent = [
+      when(row.startedAt),
+      names,
+      row.match?.matchFormat,
+      row.finished ? null : 'recording now',
+    ].filter(Boolean).join('  ·  ');
     li.append(sub);
 
     const actions = document.createElement('div');
     actions.className = 'row';
     actions.append(
-      button('Export', async () => {
+      button('Export', async (e) => {
+        const b = e.currentTarget;
+        b.textContent = 'Exporting…';
         const res = await send({ type: 'export', roomCode: row.roomCode });
+        b.textContent = 'Export';
         if (!res?.ok) sub.textContent = res?.error ?? 'export failed';
-      }),
+      }, 'Save this match as a .ratlas.json file. Rebuilds from the recording '
+       + 'first, so an export is always up to date.'),
       button('Open in lobby', async () => {
         const res = await send({ type: 'prefillLobby', roomCode: row.roomCode });
         sub.textContent = res?.ok
@@ -103,7 +112,10 @@ async function refresh() {
       button(row.hasReplay ? 'Rebuild' : 'Build', async () => {
         await send({ type: 'finalise', roomCode: row.roomCode });
         refresh();
-      }),
+      }, 'Re-assemble the replay from what was recorded. You do not normally '
+       + 'need this - recording is continuous and the replay is built when you '
+       + 'leave the match. It is here for when a replay looks short or was '
+       + 'built by an older version.'),
       button('Delete', async () => {
         await send({ type: 'delete', roomCode: row.roomCode });
         refresh();

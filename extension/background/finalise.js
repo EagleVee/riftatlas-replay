@@ -58,11 +58,28 @@ export async function buildReplay(roomCode) {
     // Commits below where we now stand belong to the lost stretch; skip them
     // rather than feeding the reducer a base it never reached.
     if (commit.baseSequence !== sequence) {
-      if (commit.baseSequence > sequence) unrepaired.push({ from: sequence, to: commit.baseSequence });
+      // One gap per contiguous run of skipped commits, not one per commit.
+      const open = unrepaired.at(-1);
+      if (open && open.from === sequence) open.to = commit.baseSequence;
+      else if (commit.baseSequence > sequence) {
+        unrepaired.push({ from: sequence, to: commit.baseSequence });
+      }
       continue;
     }
     timeline.ingest({ type: 'authoritative_patch_commit', ...commit });
     sequence = commit.sequence;
+  }
+
+  // Snapshots beyond everything we could walk still tell us how the match
+  // ended. When a hole has cost the middle of a game, the final board is the
+  // most that can be salvaged, and it is worth more than stopping at the hole.
+  for (const later of bySequence) {
+    if (later.sequence <= sequence) continue;
+    timeline.ingest({ type: 'authoritative_snapshot', ...later });
+    const open = unrepaired.at(-1);
+    if (open && open.from === sequence) open.to = later.sequence;
+    else if (later.sequence > sequence) unrepaired.push({ from: sequence, to: later.sequence });
+    sequence = later.sequence;
   }
 
   const lastSeq = timeline.sequences.at(-1);
