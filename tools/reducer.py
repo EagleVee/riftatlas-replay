@@ -164,13 +164,21 @@ class Timeline:
 
         base = msg["baseSequence"]
         if base != self._sequence:
-            repaired = base in self.snapshots
-            self.holes.append((self._sequence, base, repaired))
-            if not repaired:
+            # Any snapshot between where we stand and the commit's base lets the
+            # chain continue. Insisting on one exactly at the break threw away
+            # every later commit: one real match could walk 8 of its 396.
+            usable = [s for s in self.snapshots if self._sequence <= s <= base]
+            if not usable:
+                self.holes.append((self._sequence, base, False))
                 return
-            state, log = self.snapshots[base]
+            at = max(usable)
+            state, log = self.snapshots[at]
             self._state, self._log = copy.deepcopy(state), copy.deepcopy(log)
-            self._sequence = base
+            self.holes.append((self._sequence, at, True))
+            self._sequence = at
+            if base != self._sequence:
+                self.holes.append((self._sequence, base, False))
+                return
 
         self._sequence = apply_commit(self._state, self._log, msg)
         self.commits[self._sequence] = msg

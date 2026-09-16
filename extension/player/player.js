@@ -323,6 +323,7 @@ function render() {
 
   const gap = index.gaps.find((g) => g.to === seq);
   const fog = $('#fog');
+  if (state.truncated && !gap) return;   // the truncation warning outranks the fog note
   fog.hidden = !(replay.viewer.fogOfWar || gap);
   fog.textContent = gap
     ? `Server resynced - ${gap.missing} action not captured`
@@ -387,6 +388,21 @@ function load(replay) {
 
   const hint = $('#hint');
   if (hint) hint.hidden = true;
+  // A replay can hold more commits than it can walk: one hole in the chain
+  // makes everything after it unreachable. Say so rather than presenting a
+  // truncated match as a short one.
+  const applied = index.sequences.length - 1;
+  const recorded = replay.coverage?.recordedCommits ?? replay.commits.length;
+  if (recorded > applied) {
+    const lost = replay.gaps?.reduce((n, g) => n + (g.missingCommits ?? 0), 0) ?? 0;
+    const warn = $('#fog');
+    warn.hidden = false;
+    warn.textContent = `Incomplete — plays ${applied} of ${recorded} recorded actions`
+      + (lost ? `; ${lost} were never captured` : '');
+    warn.title = 'A break in the recording makes everything after it unreplayable.';
+    state.truncated = true;
+  }
+
   renderRail();
   renderEvents();
   renderTrack();

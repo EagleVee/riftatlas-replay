@@ -105,6 +105,18 @@ It's version 0.1.0 and unpublished. Expect:
   useful to hear about.
 - **Multiplayer and sealed formats are untested.**
 
+## If a replay is much shorter than the match
+
+A break in the recording makes everything after it unreplayable, so a replay can
+hold hundreds of actions and only play the first few. The player says so at the
+top — *"Incomplete — plays 8 of 396 recorded actions"* — rather than passing it
+off as a short game.
+
+0.3.0 recovers most of these: it resumes from the next usable snapshot instead
+of giving up at the break. Press **Build** on an older recording to try. It also
+stops the loss happening in the first place, by queueing frames until the
+extension's background worker is awake to receive them.
+
 ## Telling us something went wrong
 
 Hit **Debug dump** in the popup. It writes `riftatlas-replay-debug.json` to your

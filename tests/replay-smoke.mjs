@@ -42,6 +42,16 @@ check('chapters cover every sequence',
 check('events carry text', index.events.every((e) => typeof e.text === 'string'),
   `${index.events.length} event(s)`);
 
+// A hole in the commit chain makes everything after it unreplayable. The file
+// may still carry those commits, so "recorded" and "playable" can differ
+// wildly - one real match recorded 396 commits and could walk 8 of them. That
+// is allowed to happen, but never silently.
+const applied = index.sequences.length - 1;
+const recorded = replay.coverage?.recordedCommits ?? replay.commits.length;
+const declared = (replay.gaps ?? []).length > 0;
+check('commit coverage', applied === recorded || declared,
+  `${applied} of ${recorded} applied${declared ? ', gaps declared' : ', NO gaps declared'}`);
+
 // Navigation must be reversible and land back exactly where it started.
 const cursor = new Cursor(index);
 cursor.toEnd();
