@@ -429,7 +429,7 @@ function begin(replay, ARM) {
     mk('\u23ED', 'Last (End)', () => seek(order.length - 1)),
     slider,
     counter,
-    mk('\u2715', 'Leave replay mode', () => location.reload()),
+    mk('\u2715', 'Leave replay mode', () => leaveReplayMode()),
   );
 
   /**
@@ -481,32 +481,91 @@ function begin(replay, ARM) {
   if (document.body) mount(); else addEventListener('DOMContentLoaded', mount);
 
   /**
-   * Get the client into the room.
+   * Put the client into the room.
    *
    * Intercepting the socket is not enough: the app only opens one once it
-   * believes it is in a room, and a fresh session sits in the lobby. So drive
-   * its own join control - type the room code, press Join - and let the
-   * intercept answer. Gives up quietly after a while rather than clicking at a
-   * page that has moved on.
+   * believes it is in a room, and a fresh page sits in the lobby with nothing
+   * to intercept. Driving its Join control does not help either - joining by
+   * code asks the server whether the room exists, and a finished match's room
+   * is usually gone.
+   *
+   * So skip the lookup and restore the room the way the client restores its own
+   * after a reload: it keeps the current room in `riftbound_simulator_active_room`
+   * (sessionStorage, per tab) and a recovery copy in
+   * `riftbound_simulator_last_room` (localStorage). Writing those before the app
+   * boots makes it open the socket on its own, and the intercept answers.
+   *
+   * As a spectator, because the replay's seats belong to whoever played the
+   * match, not to whoever is watching it now.
    */
-  function joinRoom() {
-    if (document.getElementById('riftatlas-replay-bar') && sockets.size) return;
-    const input = [...document.querySelectorAll('input')]
-      .find((i) => /AB12CD/i.test(i.placeholder ?? '') || /room/i.test(i.placeholder ?? ''));
-    const button = [...document.querySelectorAll('button')]
-      .find((b) => /join\s*\/?\s*spectate/i.test(b.innerText ?? ''));
-    if (!input || !button) return;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-    setter?.call(input, ROOM);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    setTimeout(() => button.click(), 120);
+  const ROOM_KEYS = {
+    active: 'riftbound_simulator_active_room',
+    last: 'riftbound_simulator_last_room',
+    tab: 'riftbound_simulator_tab_id',
+  };
+
+  /** What we displaced, so leaving replay mode does not strand the viewer. */
+  const previousRoomState = {
+    active: sessionStorage.getItem(ROOM_KEYS.active),
+    last: localStorage.getItem(ROOM_KEYS.last),
+  };
+
+  function enterRoom() {
+    const viewer = replay.players?.[0]?.id ?? replay.viewer?.playerId ?? null;
+    const name = replay.players?.find((p) => p.id === replay.viewer?.playerId)?.name ?? 'Replay';
+    const session = {
+      roomCode: ROOM,
+      playerId: 'spectator',
+      activePlayerId: viewer,
+      controlledPlayerIds: [],
+      viewerRole: 'spectator',
+      spectatorName: name,
+      playerName: name,
+      playMode: replay.match?.playMode ?? 'constructed',
+      deckRulesMode: replay.match?.deckRulesMode ?? 'standard',
+      lastKnownPhase: replay.origin?.snapshot?.phase ?? 'in_game',
+    };
+    const now = Date.now();
+    let tabId = sessionStorage.getItem(ROOM_KEYS.tab);
+    if (!tabId) {
+      tabId = (crypto.randomUUID?.() ?? String(now));
+      sessionStorage.setItem(ROOM_KEYS.tab, tabId);
+    }
+    sessionStorage.setItem(ROOM_KEYS.active,
+      JSON.stringify({ version: 2, updatedAt: now, session }));
+    localStorage.setItem(ROOM_KEYS.last,
+      JSON.stringify({ updatedAt: now, ownerTabId: tabId, session }));
+
+    if (!location.pathname.startsWith('/game')) {
+      location.replace('/game');
+    }
   }
 
-  let joinTries = 0;
-  const joinTimer = setInterval(() => {
-    if (sockets.size || ++joinTries > 40) { clearInterval(joinTimer); return; }
-    joinRoom();
-  }, 500);
+  function leaveReplayMode() {
+    // Hand the viewer's own room state back before reloading.
+    if (previousRoomState.active === null) sessionStorage.removeItem(ROOM_KEYS.active);
+    else sessionStorage.setItem(ROOM_KEYS.active, previousRoomState.active);
+    if (previousRoomState.last === null) localStorage.removeItem(ROOM_KEYS.last);
+    else localStorage.setItem(ROOM_KEYS.last, previousRoomState.last);
+    location.replace('/');
+  }
+
+  enterRoom();
+
+  addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // The client has a chat box and its own shortcuts; never take keys from a
+    // field someone is typing in.
+    const el = e.target;
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+        || el instanceof HTMLSelectElement || el?.isContentEditable) return;
+
+    if (e.key === 'ArrowRight') { e.preventDefault(); seek(cursor + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(cursor - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); seek(0); }
+    else if (e.key === 'End') { e.preventDefault(); seek(order.length - 1); }
+    else if (e.key === ' ') { e.preventDefault(); toggle(); }
+  }, true);
 
   console.log(`[riftatlas-replay] replay mode armed for ${ROOM}: ${order.length} states`);
 }
