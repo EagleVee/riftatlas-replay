@@ -186,13 +186,25 @@ export class Timeline {
 
     const base = msg.baseSequence;
     if (base !== this._sequence) {
-      const repaired = this.snapshots.has(base);
-      this.holes.push({ from: this._sequence, to: base, repaired });
-      if (!repaired) return;
-      const [state, log] = this.snapshots.get(base);
+      // Any snapshot between where we stand and the commit's base lets the
+      // chain continue. Insisting on one exactly at the break threw away every
+      // later commit: one real match could walk 8 of its 396.
+      const usable = [...this.snapshots.keys()]
+        .filter((s) => s >= this._sequence && s <= base);
+      if (!usable.length) {
+        this.holes.push({ from: this._sequence, to: base, repaired: false });
+        return;
+      }
+      const at = Math.max(...usable);
+      const [state, log] = this.snapshots.get(at);
       this._state = clone(state);
       this._log = clone(log);
-      this._sequence = base;
+      this.holes.push({ from: this._sequence, to: at, repaired: true });
+      this._sequence = at;
+      if (base !== this._sequence) {
+        this.holes.push({ from: this._sequence, to: base, repaired: false });
+        return;
+      }
     }
 
     this._sequence = applyCommit(this._state, this._log, msg);

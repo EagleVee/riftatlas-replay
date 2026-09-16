@@ -36,14 +36,33 @@ export async function buildReplay(roomCode) {
 
   const timeline = new Timeline();
   timeline.ingest({ type: 'authoritative_snapshot', ...session.origin });
-  const repairs = new Map(snapshots.map((s) => [s.sequence, s]));
+
+  // Repair holes with any snapshot that lets the chain continue, not only one
+  // sitting exactly on the break. A hole is fatal to everything after it - the
+  // reducer cannot apply a commit whose base state it never saw - so a match
+  // that lost a handful of frames replayed as nine moves out of 396 while the
+  // other 388 sat unused. Resuming from the nearest usable snapshot recovers
+  // the rest of the match, minus the stretch that was actually lost.
+  const bySequence = [...snapshots].sort((a, b) => a.sequence - b.sequence);
+  const unrepaired = [];
+  let sequence = session.origin.sequence;
+
   for (const commit of commits) {
-    const repair = repairs.get(commit.baseSequence);
-    if (repair) {
-      timeline.ingest({ type: 'authoritative_snapshot', ...repair });
-      repairs.delete(commit.baseSequence);
+    if (commit.baseSequence !== sequence) {
+      const repair = bySequence.find((s) => s.sequence >= sequence && s.sequence <= commit.baseSequence);
+      if (repair) {
+        timeline.ingest({ type: 'authoritative_snapshot', ...repair });
+        sequence = repair.sequence;
+      }
+    }
+    // Commits below where we now stand belong to the lost stretch; skip them
+    // rather than feeding the reducer a base it never reached.
+    if (commit.baseSequence !== sequence) {
+      if (commit.baseSequence > sequence) unrepaired.push({ from: sequence, to: commit.baseSequence });
+      continue;
     }
     timeline.ingest({ type: 'authoritative_patch_commit', ...commit });
+    sequence = commit.sequence;
   }
 
   const lastSeq = timeline.sequences.at(-1);
@@ -59,6 +78,21 @@ export async function buildReplay(roomCode) {
       gameplayLog: repair?.gameplayLog ?? null,
     };
   });
+
+  // Holes nothing could bridge. Recorded but unusable, and the replay has to
+  // say so - reporting no gaps made a truncated match look like a short one.
+  const seen = new Set(gaps.map((g) => `${g.fromSequence}:${g.toSequence}`));
+  for (const { from, to } of unrepaired) {
+    const key = `${from}:${to}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    gaps.push({
+      fromSequence: from, toSequence: to, missingCommits: to - from,
+      reason: errors.get(to) ?? 'frames_not_captured',
+      recovery: 'none', snapshot: null, gameplayLog: null,
+    });
+  }
+  gaps.sort((a, b) => a.fromSequence - b.fromSequence);
 
   const shell = session.shell ?? {};
   const viewer = session.viewer ?? shell.viewer ?? {};
@@ -107,6 +141,13 @@ export async function buildReplay(roomCode) {
       maskedZonesByPlayer: masked,
     },
     partial: session.partial === true,
+    // What the reducer could actually walk, against what was recorded. A
+    // replay that stops early must be visibly short, not quietly short.
+    coverage: {
+      recordedCommits: commits.length,
+      appliedCommits: timeline.commits.size,
+      lastSequence: lastSeq,
+    },
     players,
     shell: session.shell ?? null,
     origin: session.origin,
