@@ -140,6 +140,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             finished: s.finished === true,
             partial: s.partial === true,
             hasReplay: !!replay,
+            builtAt: built.get(s.roomCode)?.builtAt ?? null,
             recordedCommits: recorded,
             builtCommits: replay?.commits?.length ?? 0,
             // A built replay can fall behind its recording - an early finalise
@@ -157,8 +158,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   if (msg?.type === 'export') {
     (async () => {
-      let row = await get(REPLAYS, msg.roomCode);
-      if (!row) { await finalise(msg.roomCode); row = await get(REPLAYS, msg.roomCode); }
+      // Rebuild first, always. A replay built earlier in the match can be
+      // behind the recording, and exporting a stale one is how a complete
+      // recording leaves as a short replay.
+      await finalise(msg.roomCode);
+      const row = await get(REPLAYS, msg.roomCode);
       if (!row) return sendResponse({ ok: false, error: 'nothing recorded for this room' });
       // A data: URL keeps the download entirely local; no blob URL, no fetch.
       const url = jsonDataUrl(row.replay);
