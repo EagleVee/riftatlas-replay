@@ -263,11 +263,42 @@
 
   // ---------------------------------------------------------------- controls
 
-  function seek(index) {
+  /** One step per second, matching how a person reads a match back. */
+  const STEP_MS = 1000;
+  let timer = null;
+
+  const atEnd = () => cursor >= order.length - 1;
+
+  /**
+   * `fromAuto` distinguishes the timer's own advance from a person reaching for
+   * the controls. Any manual move stops playback - otherwise the bar keeps
+   * advancing out from under someone who just scrubbed somewhere to look at it.
+   */
+  function seek(index, fromAuto) {
+    if (!fromAuto) stop();
     cursor = Math.max(0, Math.min(order.length - 1, index));
     for (const socket of sockets) socket._pushState();
     paint();
   }
+
+  function stop() {
+    if (!timer) return;
+    clearInterval(timer);
+    timer = null;
+    paintTransport();
+  }
+
+  function play() {
+    if (timer) return;
+    if (atEnd()) seek(0);          // finished: start over
+    timer = setInterval(() => {
+      if (atEnd()) { stop(); return; }
+      seek(cursor + 1, true);
+    }, STEP_MS);
+    paintTransport();
+  }
+
+  const toggle = () => (timer ? stop() : play());
 
   const LAST = order.at(-1);
   const DIGITS = String(LAST).length;
@@ -325,7 +356,7 @@
   slider.value = '0';
   slider.title = 'Scrub';
   slider.style.cssText = 'flex:1 1 auto;min-width:60px;margin:0 2px;accent-color:#d8b76e;cursor:pointer';
-  slider.oninput = () => seek(Number(slider.value));
+  slider.oninput = () => seek(Number(slider.value));   // manual: stops playback
 
   // Tabular figures and a width reserved for the largest value, so the counter
   // cannot nudge its neighbours as the numbers grow.
@@ -333,10 +364,13 @@
   counter.style.cssText = `flex:0 0 auto;color:#8698ab;font-variant-numeric:tabular-nums;`
     + `min-width:${DIGITS * 2 + 3}ch;text-align:right`;
 
+  const transport = mk('\u25B6', 'Play (space)', toggle);
+
   bar.append(
     badge,
     mk('\u23EE', 'First (Home)', () => seek(0)),
     mk('\u25C0', 'Previous step (left arrow)', () => seek(cursor - 1)),
+    transport,
     mk('\u25B6', 'Next step (right arrow)', () => seek(cursor + 1)),
     mk('\u23ED', 'Last (End)', () => seek(order.length - 1)),
     slider,
@@ -344,11 +378,31 @@
     mk('\u2715', 'Leave replay mode', () => location.reload()),
   );
 
+  /**
+   * Three states in one button: play, pause, and - once the match has run out -
+   * replay from the start. Every glyph is a single character inside a fixed
+   * 30x30 button, so swapping them cannot change the bar's geometry.
+   */
+  function paintTransport() {
+    if (timer) {
+      transport.textContent = '\u23F8';
+      transport.title = 'Pause (space)';
+    } else if (atEnd()) {
+      transport.textContent = '\u21BB';
+      transport.title = 'Replay from the start (space)';
+    } else {
+      transport.textContent = '\u25B6';
+      transport.title = 'Play (space)';
+    }
+    transport.setAttribute('aria-label', transport.title);
+  }
+
   function paint() {
     const seq = order[cursor];
     const [, log] = states.get(seq);
     counter.textContent = `${seq}/${LAST}`;
     slider.value = String(cursor);
+    paintTransport();
     // The client already narrates the match in its own log panel, so the text
     // lives in a tooltip rather than in the layout.
     bar.title = log[0]?.text ?? `Sequence ${seq}`;
@@ -356,10 +410,17 @@
 
   addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // The client has a chat box and its own shortcuts; never take keys from a
+    // field someone is typing in.
+    const el = e.target;
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+        || el instanceof HTMLSelectElement || el?.isContentEditable) return;
+
     if (e.key === 'ArrowRight') { e.preventDefault(); seek(cursor + 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(cursor - 1); }
     else if (e.key === 'Home') { e.preventDefault(); seek(0); }
     else if (e.key === 'End') { e.preventDefault(); seek(order.length - 1); }
+    else if (e.key === ' ') { e.preventDefault(); toggle(); }
   }, true);
 
   const mount = () => { document.body.append(bar); paint(); };
