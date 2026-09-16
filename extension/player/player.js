@@ -334,16 +334,39 @@ function fogText(replay) {
   return `Recorded from ${seat?.name ?? 'one seat'} - hidden zones were masked`;
 }
 
+/**
+ * Playback pacing, matching replay mode.
+ *
+ * One player action often lands as several narrated events - exhausting four
+ * runes is four of them - so a flat beat per event reads badly. A step that
+ * repeats the previous event's action type flicks past; anything new gets the
+ * full beat.
+ */
+const BASE_MS = 1000;
+const RUN_MS = 180;
+
+function delayForEvent(index) {
+  const events = state.index.events;
+  const here = events[index];
+  const previous = index > 0 ? events[index - 1] : null;
+  if (!here) return BASE_MS;
+  const continuesRun = !!previous && !!here.actionType && here.actionType === previous.actionType;
+  return continuesRun ? RUN_MS : BASE_MS;
+}
+
 function setPlaying(on) {
-  if (playing) { clearInterval(playing); playing = null; }
+  if (playing) { clearTimeout(playing); playing = null; }
   $('#b-play').textContent = on ? 'II' : '>';
   if (!on) return;
-  playing = setInterval(() => {
+  const step = () => {
     const before = state.cursor.sequence;
     const after = state.cursor.stepEvent(1);
     render();
-    if (after === before) setPlaying(false);
-  }, 900);
+    if (after === before) { setPlaying(false); return; }
+    const next = currentEventIndex(state.cursor.sequence) + 1;
+    playing = setTimeout(step, delayForEvent(next));
+  };
+  playing = setTimeout(step, delayForEvent(currentEventIndex(state.cursor.sequence) + 1));
 }
 
 // ---------------------------------------------------------------- loading

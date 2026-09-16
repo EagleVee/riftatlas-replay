@@ -123,7 +123,7 @@ Three tiers, per [`../docs/replay-navigation.md`](../docs/replay-navigation.md).
 | `↑` `↓` | Previous / next narrated move |
 | `[` `]` | Previous / next chapter (phase or turn) |
 | `Home` `End` | First / last |
-| `Space` | Play / pause (advances by move) |
+| `Space` | Play / pause — a beat per move, with repeated actions flicking past |
 | `1`–`9` | Jump to turn N |
 
 Clicking the chapter rail, a move in the list, a band on the scrubber, or
