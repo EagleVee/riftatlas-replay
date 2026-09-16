@@ -144,11 +144,61 @@ Replaying a captured match into Solo Lab is mechanically straightforward:
    `room_shell_sync.sessionDoc.selfPlayer.decklistRaw`).
 2. Add a solo opponent with the synthetic revealed-cards deck.
 3. Walk the capture's commit list. Translate each action into the equivalent
-   manual action, substituting `take_card_from_deck` wherever the capture drew.
+   manual action, under the draw rule below.
 4. Set scores, counters, exhausted states and tokens directly where the replay
    says so, rather than deriving them.
 
 Every step maps to an existing action type. Nothing needs to be forced.
+
+### The load-bearing rule: never replay a draw as a draw
+
+Map `draw_cards` onto `draw_cards` and the reconstruction fails, for a reason
+worth being precise about. Solo Lab's server shuffles the synthetic deck into an
+order you cannot see or choose. So the draw puts an arbitrary card in hand, and
+three turns later the capture says the opponent played Tideturner from hand —
+except Tideturner is still somewhere in the deck. There is no recovery from that
+position, and no amount of deck-building prevents it.
+
+The fix is to stop modelling hands as sets of known cards:
+
+- **Hidden draws carry no information.** The capture never says what the opponent
+  drew — only that their hand count went up by one. Any filler card satisfies
+  that, because the replay shows a face-down card either way.
+- **Revealed cards enter play from the deck, not from hand.** When the capture
+  shows a card being played, issue `take_card_from_deck` naming that card, then
+  remove a filler from hand to keep the count right. The deck was built to
+  contain that card, so it is always there.
+
+So the simulator is never asked to draw a card the deck lacks. It is asked to
+take a *named* card from the deck, which is a different operation with a
+different guarantee.
+
+Your own seat is easier: your hand is visible throughout the capture, so every
+card you drew is known, and your real decklist always contains it.
+
+Two fallbacks exist if a card is somehow missing anyway — `create_token` and
+`duplicate_card` both conjure cards that were never in the deck.
+
+### Sizing the synthetic deck
+
+Build it from **peak simultaneous count** per card code, not from distinct card
+ids: ids are reassigned on some zone transitions, so counting ids overstates how
+many copies exist. Measured on the reference capture's opponent:
+
+| | |
+|---|---|
+| Distinct card codes ever revealed | 17 |
+| Peak simultaneous instances | 30 (20 non-rune, 10 runes) |
+| Their actual deck | 39 main + champion + legend + 12 runes |
+
+So roughly half. Pad to real totals with filler if you want the zone counts to
+look right — or don't, since `unrestricted` does not check.
+
+### What cannot be reconstructed
+
+The opponent's un-revealed hand. If they ended holding four cards they never
+played, nothing in the capture says what those were. The reconstruction shows
+four face-down cards, which is exactly what you saw at the time.
 
 ## Recommendation
 
