@@ -2,9 +2,18 @@
 
 A Chrome extension that records RiftAtlas matches and replays them offline.
 
-This repository currently holds the **protocol analysis, replay format, and build
-plan**. No extension code is written yet — phase 1 is a spike that tests the one
-assumption everything else rests on.
+The **replay player works today** and plays back a real captured match offline:
+step and jump forward and backward across sequences, moves and chapters, with
+correct fog of war. The **recorder** — the part that observes a live match — is
+not built yet.
+
+```bash
+tests/run.sh path/to/capture.har      # build a replay and check it end to end
+cd extension && python3 -m http.server 8731
+# http://127.0.0.1:8731/player/player.html?src=<replay>.ratlas.json
+```
+
+See [`extension/README.md`](extension/README.md) for controls.
 
 Built with the permission of the RiftAtlas owner.
 
@@ -79,16 +88,22 @@ format and visible in the player.
 | [`docs/open-questions.md`](docs/open-questions.md) | What one capture cannot answer |
 | [`plans/00-index.md`](plans/00-index.md) | Six-phase build plan |
 
-## Tools
+## Tools and tests
 
-Python 3, no dependencies. `tools/reducer.py` is the **normative** reducer — the
-JavaScript port must match it.
+Python 3 and Node, no dependencies beyond the standard libraries.
+`tools/reducer.py` is the **normative** reducer; `extension/shared/reducer.js`
+must match it, and `tests/run.sh` proves it does on every capture.
 
 ```bash
 python3 tools/har_to_jsonl.py capture.har frames.jsonl   # extract + redact
 python3 tools/verify.py frames.jsonl                     # prove replayability
 python3 tools/analyze.py frames.jsonl                    # protocol inventory
+python3 tools/har_to_replay.py capture.har out.ratlas.json
+tests/run.sh capture.har                                 # all of the above + JS parity
 ```
+
+`tests/run.sh` also greps the built replay for JWT-shaped strings and
+`authToken`, so a credential leak fails the build rather than shipping.
 
 `tools/probe_client.mjs` (Node + Playwright) fetches the production client
 bundles and dumps the action vocabulary — re-run it after a RiftAtlas deploy to
