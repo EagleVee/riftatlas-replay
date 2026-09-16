@@ -38,6 +38,15 @@ client refuse to proceed.
 two seconds in. Injecting after that, the real socket wins and replay mode
 correctly refuses to displace it. Arming has to happen at `document_start`.
 
+The popup therefore parks the replay in session storage, registers the arming
+scripts at `document_start`, and reloads the tab. Two things that cost a debug
+cycle each: session storage is closed to content scripts until
+`setAccessLevel('TRUSTED_AND_UNTRUSTED_CONTEXTS')` is called, so `arm.js` read
+nothing at all; and both scripts run at `document_start` with no ordering
+guarantee while `postMessage` does not buffer, so they now handshake rather than
+hope. The registration is torn down as soon as it is used, and on browser
+startup, so replay mode is never sitting armed on a future page load.
+
 **The viewer has to be a spectator.** The replay's `shell` says the viewer is
 whoever recorded it; the person watching is signed in as someone else. The
 client waits at *"Still opening your game…"* forever when it cannot find itself.

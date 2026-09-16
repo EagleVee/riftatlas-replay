@@ -16,7 +16,12 @@ the browser. A `.ratlas.json` replay works the same way.
 tests/run.sh path/to/capture.har      # build a replay and check it end to end
 ```
 
-See [`extension/README.md`](extension/README.md) for controls and install steps.
+See [`extension/README.md`](extension/README.md) for controls and install steps,
+and [`INSTALL.md`](INSTALL.md) for the guide to hand a tester.
+
+**To share it:** `tools/package.sh` builds `dist/riftatlas-replay-<version>.zip`
+alongside the tester guide. They unzip it, open `chrome://extensions`, enable
+Developer mode, and *Load unpacked*. No store listing needed.
 
 Built with the permission of the RiftAtlas owner.
 
