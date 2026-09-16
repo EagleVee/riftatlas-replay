@@ -63,6 +63,16 @@ a real room:
   overwritten by a snapshot write that had read the session first. Frame
   handling is now serialised through a promise queue.
 
+## Two ways to watch
+
+- **The standalone player** — offline, independent, works if RiftAtlas is down or
+  gone. Text tiles, not card art.
+- **[Replay mode](../extension/replay-mode/README.md)** — renders the replay in
+  RiftAtlas' own board with real art, their match log and their layout. Needs
+  their site, online and signed in, and breaks when they change the client.
+
+Replay mode is started from the popup: build a replay, then **In RiftAtlas UI**.
+
 ## Opening a replay
 
 Click the toolbar icon, then **Open player** — or go straight to

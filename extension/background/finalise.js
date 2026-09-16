@@ -108,6 +108,7 @@ export async function buildReplay(roomCode) {
     },
     partial: session.partial === true,
     players,
+    shell: session.shell ?? null,
     origin: session.origin,
     commits: commits.map(({ roomCode: _ignored, ...c }) => c),
     gaps,

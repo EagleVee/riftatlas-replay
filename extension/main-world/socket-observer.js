@@ -41,13 +41,18 @@
       if (!href.includes(MATCH)) return;
 
       const socketId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      // Replay mode reads this to refuse arming while a real match is open.
+      if (href.includes('/parties/match/')) window.__riftatlasLiveMatch = href;
       post('open', { socketId, url: href, at: Date.now() });
 
       this.addEventListener('message', (event) => {
         if (typeof event.data !== 'string') return;
         post('frame', { socketId, at: Date.now(), data: event.data });
       });
-      this.addEventListener('close', () => post('close', { socketId, at: Date.now() }));
+      this.addEventListener('close', () => {
+        if (window.__riftatlasLiveMatch === href) delete window.__riftatlasLiveMatch;
+        post('close', { socketId, at: Date.now() });
+      });
     }
   }
 

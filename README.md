@@ -42,6 +42,18 @@ Byte-identical, including the 99-entry gameplay log. A replay player does not
 need to re-implement RiftAtlas' rules — it replays patches the server already
 computed.
 
+## Replay mode: their board, our data
+
+A replay can also be rendered in **RiftAtlas' own UI** — real card art, their
+match log, their layout — by answering the client's match socket locally with
+recorded frames. Their client renders a game purely from frames it receives,
+which is what spectating is, so it draws the board without knowing the frames
+are recorded.
+
+Verified working against the live client. It is deliberately fenced off from the
+recorder: see [`extension/replay-mode/README.md`](extension/replay-mode/README.md)
+for the structural argument and the known limits.
+
 ## Why a recorder is necessary
 
 RiftAtlas keeps server-side match history — results, decks, scores, duration —

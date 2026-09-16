@@ -176,6 +176,7 @@ def build(frames):
             "maskedZonesByPlayer": masked,
         },
         "players": players,
+        "shell": shell,
         "origin": origin,
         "commits": commits,
         "gaps": gaps,

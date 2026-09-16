@@ -161,6 +161,7 @@ export function harToReplay(har, { urlContains = '/parties/match/' } = {}) {
       maskedZonesByPlayer: masked,
     },
     players,
+    shell,
     origin,
     commits,
     gaps,
