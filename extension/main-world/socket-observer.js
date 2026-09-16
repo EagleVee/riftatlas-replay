@@ -26,6 +26,20 @@
   const TAG = 'riftatlas-replay';
   const MATCH = '/parties/';
 
+  // Sequence numbers of every authoritative frame this page observed. If a
+  // sequence is missing here, it never reached the extension at all and the
+  // loss is upstream - a reconnect, a reload, or a socket we never saw.
+  const observed = window.__riftatlasObserved ?? { sockets: [], sequences: [], frames: 0 };
+  window.__riftatlasObserved = observed;
+
+  // Delivery counters published by the bridge from the isolated world.
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    if (event.data?.source === 'riftatlas-replay-stats') {
+      window.__riftatlasBridgeStats = event.data.stats;
+    }
+  });
+
   const post = (kind, payload) => {
     try {
       window.postMessage({ source: TAG, kind, ...payload }, window.location.origin);
@@ -51,8 +65,17 @@
       if (href.includes('/parties/match/')) window.__riftatlasLiveMatch = href;
       post('open', { socketId, url: href, at: Date.now() });
 
+      observed.sockets.push({ url: href, at: Date.now() });
+
       this.addEventListener('message', (event) => {
         if (typeof event.data !== 'string') return;
+        observed.frames++;
+        // Cheap enough to parse: only authoritative frames carry a sequence.
+        const at = event.data.indexOf('"sequence"');
+        if (at > 0) {
+          const m = /"sequence":(\d+)/.exec(event.data);
+          if (m) observed.sequences.push(Number(m[1]));
+        }
         post('frame', { socketId, at: Date.now(), data: event.data });
       });
       this.addEventListener('close', () => {

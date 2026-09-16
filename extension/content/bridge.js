@@ -17,12 +17,30 @@
  */
 const TAG = 'riftatlas-replay';
 
+/**
+ * Delivery counters, readable from the page for diagnosis. `seen` counts frames
+ * the observer handed over, `delivered` counts those the worker acknowledged.
+ * A difference that never closes is a frame loss, and `retries` says whether
+ * the worker going to sleep was the cause.
+ */
+const stats = { seen: 0, delivered: 0, retries: 0, failures: 0, maxQueue: 0, queued: 0 };
+
+// The isolated world has its own `window`, so these counters are invisible to
+// the page. Publish them across so a diagnosis can read the whole chain from
+// one place.
+setInterval(() => {
+  try {
+    window.postMessage({ source: 'riftatlas-replay-stats', stats: { ...stats } }, window.location.origin);
+  } catch { /* the page is going away */ }
+}, 2000);
+
 /** Frames waiting to reach the worker, oldest first. Order is load-bearing. */
 const queue = [];
 let flushing = false;
 let backoff = 0;
 
 const MAX_BACKOFF = 5000;
+const SEND_TIMEOUT_MS = 3000;
 const MAX_QUEUE = 5000;   // ~a very long match; far past this something else is wrong
 
 async function flush() {
@@ -31,13 +49,25 @@ async function flush() {
   while (queue.length) {
     const message = queue[0];
     try {
-      await chrome.runtime.sendMessage(message);
+      // A send can hang indefinitely if the worker dies mid-request, and the
+      // whole queue stalls behind it - worse than dropping the frame, because
+      // everything after it stops too. Bound the wait and retry instead.
+      const ack = await Promise.race([
+        chrome.runtime.sendMessage(message),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), SEND_TIMEOUT_MS)),
+      ]);
+      // A frame counts as delivered only when the worker says it stored it.
+      // Anything else - no acknowledgement, or a failure - means try again.
+      if (message.kind === 'frame' && !ack?.ok) throw new Error(ack?.error ?? 'no acknowledgement');
       queue.shift();
+      stats.delivered++;
+      stats.queued = queue.length;
       backoff = 0;
     } catch {
       // The worker is asleep, restarting, or the extension was reloaded. Wait
       // and try the same frame again - dropping it would break the chain.
-      if (!chrome.runtime?.id) { flushing = false; return; }   // extension is gone
+      stats.retries++;
+      if (!chrome.runtime?.id) { stats.failures++; flushing = false; return; }   // extension is gone
       backoff = Math.min(backoff ? backoff * 2 : 100, MAX_BACKOFF);
       await new Promise((resolve) => setTimeout(resolve, backoff));
     }
@@ -50,7 +80,8 @@ window.addEventListener('message', (event) => {
   const msg = event.data;
   if (!msg || msg.source !== TAG) return;
 
-  if (queue.length >= MAX_QUEUE) return;
+  stats.seen++;
+  if (queue.length >= MAX_QUEUE) { stats.failures++; return; }
   queue.push({
     type: 'observer',
     kind: msg.kind,
@@ -59,6 +90,8 @@ window.addEventListener('message', (event) => {
     at: msg.at,
     data: msg.data,
   });
+  stats.queued = queue.length;
+  if (queue.length > stats.maxQueue) stats.maxQueue = queue.length;
   flush();
 });
 
