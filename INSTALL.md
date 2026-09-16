@@ -48,8 +48,14 @@ For each recording:
 - **Export** saves it as `.ratlas.json`, which you can send to someone.
 - **In RiftAtlas UI** replays it in RiftAtlas' own board (see below).
 - **Open in lobby** types the room code into RiftAtlas and presses Join. This
-  opens the **live** room on their server if it still exists — the current
-  board, with no history. It is not the replay.
+  opens the **live** room on their server — the current board, with no history.
+  It is not the replay.
+
+  Room codes are only five characters, so RiftAtlas reuses them. An old code may
+  now belong to somebody else's match, and joining would drop you into it as a
+  spectator. The extension asks first for anything more than a few hours old.
+  **Replay mode is unaffected** — it answers the connection itself and never
+  reaches their server, so it always shows your match and never someone else's.
 - **Delete** removes it.
 
 ## If RiftAtlas says it can't reconnect to your game

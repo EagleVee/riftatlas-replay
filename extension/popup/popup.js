@@ -1,4 +1,7 @@
 const list = document.getElementById('list');
+
+/** Past this age, a room code is worth a second thought before joining it. */
+const STALE_CODE_MS = 6 * 60 * 60 * 1000;
 const send = (msg) => chrome.runtime.sendMessage(msg);
 
 document.getElementById('open-player').onclick = () => send({ type: 'openPlayer' });
@@ -45,14 +48,14 @@ async function refresh() {
     head.className = 'head';
     const room = document.createElement('span');
     room.className = 'room';
-    room.textContent = row.roomCode;
+    room.textContent = row.room ?? row.roomCode;
     const copy = document.createElement('button');
     copy.className = 'copy';
     copy.textContent = 'Copy';
     copy.title = 'Copy the room code';
     copy.onclick = async () => {
       try {
-        await navigator.clipboard.writeText(row.roomCode);
+        await navigator.clipboard.writeText(row.room ?? row.roomCode);
         copy.textContent = 'Copied';
       } catch {
         copy.textContent = 'failed';
@@ -93,10 +96,25 @@ async function refresh() {
       }, 'Save this match as a .ratlas.json file. Rebuilds from the recording '
        + 'first, so an export is always up to date.'),
       button('Open in lobby', async () => {
-        const res = await send({ type: 'prefillLobby', roomCode: row.roomCode });
+        // Room codes are five characters, so RiftAtlas reuses them. Joining an
+        // old code by hand can drop you into a stranger's match in progress -
+        // spectating is a public feature there, but it is not what anyone means
+        // to do from a replay list.
+        const age = Date.now() - (row.startedAt ?? 0);
+        if (age > STALE_CODE_MS) {
+          const when = Math.round(age / 3600000);
+          const ok = confirm(
+            `This recording is about ${when} hours old.\n\n`
+            + `Room codes are only five characters, so RiftAtlas reuses them. `
+            + `${row.room ?? row.roomCode} may now belong to someone else's match, `
+            + `and joining would drop you into it as a spectator.\n\n`
+            + `Open it anyway?`);
+          if (!ok) return;
+        }
+        const res = await send({ type: 'prefillLobby', roomCode: row.room ?? row.roomCode });
         sub.textContent = res?.ok
           ? (res.pressed
-            ? `joining the live ${row.roomCode} room — not the replay`
+            ? `joining the live ${row.room ?? row.roomCode} room — not the replay`
             : 'code filled in — press Join')
           : (res?.error ?? 'could not fill the lobby');
       }, 'Fill the room code into RiftAtlas and press Join. Opens the LIVE room '
@@ -105,7 +123,7 @@ async function refresh() {
       button('In RiftAtlas UI', async () => {
         const res = await send({ type: 'replayMode', roomCode: row.roomCode });
         sub.textContent = res?.ok
-          ? `replaying ${row.roomCode} in RiftAtlas' board…`
+          ? `replaying ${row.room ?? row.roomCode} in RiftAtlas' board…`
           : (res?.error ?? 'could not start replay mode');
       }, 'Play this recording back in RiftAtlas\u2019 own board, with card art and '
        + 'their match log. Works whether or not the room still exists.'),

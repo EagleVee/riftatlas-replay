@@ -7,7 +7,7 @@
  */
 import { onFrame, looksFinished, everyoneLeft } from './recorder.js';
 import { buildReplay } from './finalise.js';
-import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRoom, commitsFor } from './store.js';
+import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRecording, commitsFor, roomOf } from './store.js';
 
 /**
  * Build a data: URL for a download. Chunked, because spreading a large array
@@ -69,15 +69,33 @@ chrome.runtime.onStartup.addListener(() => {
   chrome.storage.session.remove('pendingReplay').catch(() => {});
 });
 
-async function finalise(roomCode) {
+/**
+ * Close a recording: mark it done, then build its replay.
+ *
+ * Closing and building are separate on purpose. Building can fail - a recording
+ * that never caught an anchoring snapshot has nothing to build from - and an
+ * earlier version left such a recording open forever, so the next match in the
+ * same room code was appended to it and the two merged. A recording that has
+ * ended is ended whether or not a replay came out of it.
+ */
+async function finalise(recordingId, { close = true } = {}) {
+  if (close) {
+    try {
+      const session = await get(SESSIONS, recordingId);
+      if (session && !session.finished) {
+        session.finished = true;
+        await put(SESSIONS, session);
+      }
+    } catch (err) {
+      console.warn('[riftatlas-replay] could not close', recordingId, err.message);
+    }
+  }
   try {
-    const replay = await buildReplay(roomCode);
-    await put(REPLAYS, { roomCode, builtAt: Date.now(), replay });
-    const session = await get(SESSIONS, roomCode);
-    if (session) { session.finished = true; await put(SESSIONS, session); }
-    pendingFinalise.delete(roomCode);
+    const replay = await buildReplay(recordingId);
+    await put(REPLAYS, { roomCode: recordingId, builtAt: Date.now(), replay });
+    pendingFinalise.delete(recordingId);
   } catch (err) {
-    console.warn('[riftatlas-replay] finalise failed for', roomCode, err.message);
+    console.warn('[riftatlas-replay] could not build', recordingId, err.message);
   }
 }
 
@@ -151,7 +169,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           const replay = built.get(s.roomCode)?.replay ?? null;
           const recorded = (await commitsFor(s.roomCode)).length;
           return {
-            roomCode: s.roomCode,
+            roomCode: s.roomCode,               // the recording id, used by actions
+            room: s.room ?? roomOf(s.roomCode),  // the code a person recognises
             startedAt: s.startedAt,
             lastAt: s.lastAt,
             finished: s.finished === true,
@@ -178,7 +197,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       // Rebuild first, always. A replay built earlier in the match can be
       // behind the recording, and exporting a stale one is how a complete
       // recording leaves as a short replay.
-      await finalise(msg.roomCode);
+      await finalise(msg.roomCode, { close: false });
       const row = await get(REPLAYS, msg.roomCode);
       if (!row) return sendResponse({ ok: false, error: 'nothing recorded for this room' });
       // A data: URL keeps the download entirely local; no blob URL, no fetch.
@@ -191,12 +210,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   if (msg?.type === 'finalise') {
-    finalise(msg.roomCode).then(() => sendResponse({ ok: true }));
+    // Rebuilding is not the same as ending: a match still in progress must stay
+    // open so its later frames keep landing in the same recording.
+    finalise(msg.roomCode, { close: false }).then(() => sendResponse({ ok: true }));
     return true;
   }
 
   if (msg?.type === 'delete') {
-    dropRoom(msg.roomCode).then(() => sendResponse({ ok: true }));
+    dropRecording(msg.roomCode).then(() => sendResponse({ ok: true }));
     return true;
   }
 
