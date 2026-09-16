@@ -21,7 +21,13 @@ A throwaway extension, no storage, no UI beyond a console:
 
 ## Verify
 
-Play one match with DevTools recording a HAR **at the same time**. Then:
+A **Solo Lab room is the cheap first test** — it speaks the identical protocol
+(verified 2026-09-16: `authoritative_snapshot` and `room_shell_sync` from
+sequence 0, same shape as a PvP capture), needs no opponent, and can be opened
+and abandoned freely. Get the observer working there before spending a real
+match on it.
+
+Then play one PvP match with DevTools recording a HAR **at the same time**:
 
 ```bash
 python3 tools/har_to_jsonl.py devtools.har devtools.jsonl

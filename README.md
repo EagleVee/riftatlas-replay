@@ -30,6 +30,18 @@ Byte-identical, including the 99-entry gameplay log. A replay player does not
 need to re-implement RiftAtlas' rules — it replays patches the server already
 computed.
 
+## Why a recorder is necessary
+
+RiftAtlas keeps server-side match history — results, decks, scores, duration —
+but **no play-by-play**. The `gameHistory` API is `list`, `decks`, `remove`,
+`undoRemove`, `updateResult`, `setDeckPrivacy`, `saveDeckError`; there is no
+match-log, action or replay query (verified against a live signed-in session,
+2026-09-16). The action log exists only in the live socket, so observing that
+socket is the only way to get replay data.
+
+Game History does solve deck lookup: `gameHistory:decks({gameId})` returns both
+players' decklists, or `null` for a player whose account is set private.
+
 ## RiftAtlas is a manual simulator
 
 There is no rules engine. The action vocabulary is board manipulation —

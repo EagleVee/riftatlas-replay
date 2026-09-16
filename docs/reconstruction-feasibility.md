@@ -10,8 +10,33 @@ RiftAtlas actually is. But the conclusion is not "therefore build the replay
 system this way" — see [Recommendation](#recommendation).
 
 Evidence: static analysis of the production client bundles (51 files, 4.3 MB,
-fetched 2026-09-16), plus the reference capture. Reproduce with
-`tools/probe_client.mjs`.
+fetched 2026-09-16), plus the reference capture, plus **a live signed-in session
+on 2026-09-16** that confirmed the claims below on the wire. Reproduce the static
+half with `tools/probe_client.mjs`.
+
+### Live verification summary
+
+Confirmed by opening a real Solo Lab room (code `LSXNB`) and reading the socket:
+
+| Claim | Result |
+|---|---|
+| Solo rooms speak the same protocol | ✅ `authoritative_snapshot` + `room_shell_sync` from sequence 0, identical shape |
+| Solo Lab forces `unrestricted` deck rules | ✅ `deckRulesMode: "unrestricted"` on the wire |
+| You control both seats | ✅ two players in `snapshot.players`, and `SWITCH SEAT` / `PLAY AS EAGLEV` / `PLAY AS OPPONENT` controls |
+| Deck manipulation is exposed in the UI | ✅ `LOOK` (deck peek), `DRAW`, `BURN`, `HIDE HAND`, `TARGET`, `AUTO PAY`, `Rewind` |
+| Your own deck is masked from you | ✅ `deck: 39/39 hidden` for **both** seats, even in a room you own |
+
+**Correction to the static reading:** the SOLO ROOM button does not create a
+`solo_lab` room. It creates `roomMode: "single_player"` with a single seat —
+goldfish mode. Choosing an opponent deck inside that room is what promotes it to
+`roomMode: "solo_lab"` with two seats. RiftAtlas labels this *"TWO DECKS ·
+Two-Sided Practice — choose an opponent deck, sideboard both lists, and make
+every decision for both seats."*
+
+That both decks stay masked in your own Solo Lab room is the strongest possible
+confirmation of [the draw rule](#the-load-bearing-rule-never-replay-a-draw-as-a-draw):
+the server holds the order and will not show it to you even when you own every
+seat in the room.
 
 ## The reframe: there is no rules engine
 
@@ -55,6 +80,32 @@ Adding the opponent is a normal flow — `add_solo_opponent` /
 `solo_opponent_replace` with a chosen deck, sourced either from a saved deck or
 from pasted `decklistRaw` text. Any text you can paste, you can give the
 opponent seat.
+
+### Game History serves the deck directly — when it is public
+
+A finding from the live session that changes the shape of this problem.
+
+RiftAtlas keeps server-side match history. `gameHistory:list` returns every match
+you played with a stable `id`, both players, legends, scores, duration and
+winner. `gameHistory:decks({gameId})` then returns, per player:
+
+```json
+[ { "playerId": "plr_72272ae6", "name": "BertoC", "decklist": null,  "private": true  },
+  { "playerId": "plr_135347f2", "name": "EagleV", "decklist": "Legend:\n1 Zed…", "private": false } ]
+```
+
+So when the opponent's deck is public you get their **exact decklist** in the
+same `decklistRaw` format the simulator imports — no reconstruction needed.
+
+When it is private, `decklist` is `null`. That is the **server** withholding it,
+not the client hiding it, so there is nothing to work around and no reason to
+look for one. `deckPrivate` is an account-level setting
+(`gameHistory:setDeckPrivacy`), not per-match.
+
+The reference match is exactly this case: BertoC is `"private": true`.
+
+So the strategy is two-tier — use the real decklist when the player published it,
+and fall back to the synthetic deck below when they did not.
 
 ### You don't need their real decklist anyway
 
@@ -245,6 +296,20 @@ Two things to settle, neither technical:
   incapable of sending. If reconstruction is built, it belongs in a separate
   component with its own code path, so that "observes only" stays structurally
   true of the recorder rather than becoming a matter of configuration.
+
+## Incidental finding: there is no server-side replay
+
+Worth recording, because it settles whether the extension is necessary at all.
+
+The full `gameHistory` API surface is `list`, `decks`, `remove`, `undoRemove`,
+`updateResult`, `setDeckPrivacy`, `saveDeckError`. There is no query for a match
+log, action list, snapshot or replay — and `simulatorViewer` exposes only
+`getSnapshot`, which is the viewer's own account state, not a game.
+
+**RiftAtlas stores match metadata and decklists, never the play-by-play.** The
+action log exists only in the live socket. So a recorder that observes that
+socket is the only way to obtain replay data, and the extension is load-bearing
+rather than a convenience.
 
 ## Incidental finding: card art is resolved
 

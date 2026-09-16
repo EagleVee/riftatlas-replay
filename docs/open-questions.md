@@ -34,6 +34,18 @@ Note that Solo Lab is *not* an answer here: it grants control of every seat, but
 only within a room you created, and tells us nothing about how a spectator sees
 someone else's live match.
 
+## 2b. Does Game History help? — ANSWERED 2026-09-16
+
+Partly, and not for replay. `gameHistory:decks({gameId})` returns both players'
+decklists when public (`null` when the player set their account private), which
+is a better source than reconstructing a deck from revealed cards. But there is
+no server-side match log — see
+[`reconstruction-feasibility.md`](reconstruction-feasibility.md#incidental-finding-there-is-no-server-side-replay).
+The recorder is still required.
+
+Still worth capturing: whether `gameHistory:list` covers matches played before
+the account existed, and how far back it retains.
+
 ## 3. Protocol drift
 
 `setupOrderVersion: 2` and `rewindProtocolVersion` show the server versions its
