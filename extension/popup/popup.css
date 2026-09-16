@@ -14,10 +14,12 @@ button:hover { border-color: #74efff; }
 ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
 li { border: 1px solid #24313f; border-radius: 5px; padding: 8px; background: #121a24; }
 li.empty { color: #8698ab; text-align: center; background: none; border-style: dashed; }
+.head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .room { color: #d8b76e; font-weight: 600; letter-spacing: .04em; }
+button.copy { font-size: 10.5px; padding: 1px 6px; line-height: 1.4; }
 .sub { color: #8698ab; font-size: 11.5px; margin-top: 2px; }
 .tag { font-size: 10.5px; border: 1px solid #24313f; border-radius: 3px;
   padding: 0 5px; margin-left: 6px; color: #8698ab; }
 .tag.live { color: #74efff; border-color: rgba(116,239,255,.4); }
 .tag.partial { color: #ff9d6b; border-color: rgba(255,157,107,.4); }
-.row { display: flex; gap: 6px; margin-top: 7px; }
+.row { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }

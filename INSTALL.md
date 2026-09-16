@@ -27,9 +27,13 @@ background. Open the popup afterwards and your match is listed.
 
 For each recording:
 
+- **Copy** puts the room code on your clipboard.
 - **Build** turns the recording into a replay file.
 - **Export** saves it as `.ratlas.json`, which you can send to someone.
 - **In RiftAtlas UI** replays it in RiftAtlas' own board (see below).
+- **Open in lobby** types the room code into RiftAtlas and presses Join. This
+  opens the **live** room on their server if it still exists — the current
+  board, with no history. It is not the replay.
 - **Delete** removes it.
 
 ## Watching a replay
