@@ -14,7 +14,7 @@ top of it.
 | 1 | [Capture spike](01-capture-spike.md) | Our own capture verifies byte-identical to a DevTools HAR of the same match | — |
 | 2 | [Reducer port](02-reducer-port.md) | `reducer.js` and `reducer.py` agree on the reference capture | — |
 | 3 | [Recorder](03-recorder.md) | A played match produces a valid `.ratlas.json` that survives worker termination | 1, 2 |
-| 4 | [Player](04-player.md) | A replay file scrubs, with correct fog of war, offline | 2 |
+| 4 | [Player](04-player.md) | A replay steps and jumps in both directions, with correct fog, offline | 2 |
 | 5 | [Fidelity hardening](05-fidelity.md) | Gaps, rewinds, reconnects and match-end are handled and tested | 3, 4 |
 | 6 | [Release](06-release.md) | Installable, documented, owner-reviewed | 5 |
 
@@ -27,7 +27,11 @@ In:
 
 - Record a duel match from a player seat.
 - Export and import `.ratlas.json`.
-- Offline playback with a scrubber, turn chapters, gameplay log and think-time.
+- Offline playback with chess.com-style navigation: step and jump forward and
+  backward across sequences, narrated events and chapters, covering the setup
+  phases (battlefield pick, initiative roll, first-player choice, sideboard,
+  mulligan) as well as every turn. See
+  [`docs/replay-navigation.md`](../docs/replay-navigation.md).
 - Honest fog-of-war presentation.
 
 Out, and why:
@@ -47,3 +51,6 @@ Out, and why:
    test that greps a real exported replay for JWT-shaped strings.
 4. The player opens a replay with RiftAtlas closed and the network off.
 5. Fog-of-war state is correct when scrubbing in both directions.
+6. The timeline index reports 371 sequences, 291 narrated events, 6 phases, 14
+   turns and 1 gap on the reference capture, with chapters on the measured
+   sequences.
