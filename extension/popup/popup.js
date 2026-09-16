@@ -33,10 +33,24 @@ async function refresh() {
     const li = document.createElement('li');
 
     const head = document.createElement('div');
+    head.className = 'head';
     const room = document.createElement('span');
     room.className = 'room';
     room.textContent = row.roomCode;
-    head.append(room);
+    const copy = document.createElement('button');
+    copy.className = 'copy';
+    copy.textContent = 'Copy';
+    copy.title = 'Copy the room code';
+    copy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(row.roomCode);
+        copy.textContent = 'Copied';
+      } catch {
+        copy.textContent = 'failed';
+      }
+      setTimeout(() => { copy.textContent = 'Copy'; }, 1500);
+    };
+    head.append(room, copy);
     if (!row.finished) head.append(tag('recording', 'live'));
     if (row.partial) head.append(tag('partial', 'partial'));
     li.append(head);
@@ -54,12 +68,23 @@ async function refresh() {
         const res = await send({ type: 'export', roomCode: row.roomCode });
         if (!res?.ok) sub.textContent = res?.error ?? 'export failed';
       }),
+      button('Open in lobby', async () => {
+        const res = await send({ type: 'prefillLobby', roomCode: row.roomCode });
+        sub.textContent = res?.ok
+          ? (res.pressed
+            ? `joining the live ${row.roomCode} room — not the replay`
+            : 'code filled in — press Join')
+          : (res?.error ?? 'could not fill the lobby');
+      }, 'Fill the room code into RiftAtlas and press Join. Opens the LIVE room '
+       + 'on their server if it still exists, showing the current board with no '
+       + 'history — not this recording.'),
       button('In RiftAtlas UI', async () => {
         const res = await send({ type: 'replayMode', roomCode: row.roomCode });
         sub.textContent = res?.ok
-          ? `replay mode armed — join room ${row.roomCode} in the lobby`
+          ? `replaying ${row.roomCode} in RiftAtlas' board…`
           : (res?.error ?? 'could not start replay mode');
-      }),
+      }, 'Play this recording back in RiftAtlas\u2019 own board, with card art and '
+       + 'their match log. Works whether or not the room still exists.'),
       button(row.hasReplay ? 'Rebuild' : 'Build', async () => {
         await send({ type: 'finalise', roomCode: row.roomCode });
         refresh();
@@ -80,9 +105,10 @@ function tag(text, cls) {
   el.textContent = text;
   return el;
 }
-function button(text, onclick) {
+function button(text, onclick, title) {
   const b = document.createElement('button');
   b.textContent = text;
+  if (title) b.title = title;
   b.onclick = onclick;
   return b;
 }
