@@ -14,6 +14,10 @@ const cases = [
   // [should it end the match?, entry, why it is here]
   [false, { id: 'pk-log_a', text: 'BertoC wins initiative (16 vs 2) and decides who plays first.' },
     'the initiative roll — the line that caused the bug'],
+  [false, { id: 'log_a4af340b', text: 'ONickO wins initiative (4 vs 8) and decides who plays first.' },
+    'the same line from a live PvP match — different name, different numbers'],
+  [false, { id: 'log_d5bf7f3e', text: 'ONickO must choose who starts. Both players draw 4 cards once mulligan begins.' },
+    'the line that follows it'],
   [false, { id: 'pk-log_b', text: 'BertoC rolled 16. EagleV rolled 2.' }, 'the roll itself'],
   [false, { id: 'pk-log_c', text: 'Both battlefields are locked. Roll a d20 to decide first player.' },
     'prompt to roll'],

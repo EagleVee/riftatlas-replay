@@ -5,9 +5,9 @@
  * match; everything it learns is already in IndexedDB by the time the message
  * handler returns, so a restart is invisible.
  */
-import { onFrame, looksFinished } from './recorder.js';
+import { onFrame, looksFinished, everyoneLeft } from './recorder.js';
 import { buildReplay } from './finalise.js';
-import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRoom } from './store.js';
+import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRoom, commitsFor } from './store.js';
 
 /**
  * Build a data: URL for a download. Chunked, because spreading a large array
@@ -81,11 +81,34 @@ async function finalise(roomCode) {
   }
 }
 
+/**
+ * The room whose frames we saw last. A different one means the previous match
+ * is over, whatever its log did or did not say.
+ */
+let currentRoom = null;
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'observer') {
     if (msg.kind === 'frame') {
       onFrame(msg).then(async (roomCode) => {
         if (!roomCode) return;
+
+        // A new room started: whatever came before it is finished.
+        if (currentRoom && currentRoom !== roomCode) {
+          const previous = currentRoom;
+          currentRoom = roomCode;
+          await finalise(previous);
+        } else {
+          currentRoom = roomCode;
+        }
+
+        // Everyone has left the room. Steadier than reading the log, and the
+        // reason finalisation no longer hangs on spotting a victory line.
+        const session = await get(SESSIONS, roomCode);
+        if (everyoneLeft(session)) { await finalise(roomCode); return; }
+
+        // Last and least: the log looks like an ending. Only a hint - it has
+        // been wrong before, and a closing socket rebuilds regardless.
         try {
           if (looksFinished(JSON.parse(msg.data))) await finalise(roomCode);
         } catch { /* already filtered by onFrame */ }
@@ -105,18 +128,29 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     all(SESSIONS).then(async (sessions) => {
       const replays = await all(REPLAYS);
       const built = new Map(replays.map((r) => [r.roomCode, r]));
-      sendResponse(sessions
+      const rows = await Promise.all(sessions
         .sort((a, b) => b.startedAt - a.startedAt)
-        .map((s) => ({
-          roomCode: s.roomCode,
-          startedAt: s.startedAt,
-          lastAt: s.lastAt,
-          finished: s.finished === true,
-          partial: s.partial === true,
-          hasReplay: built.has(s.roomCode),
-          match: built.get(s.roomCode)?.replay?.match ?? null,
-          players: built.get(s.roomCode)?.replay?.players ?? null,
-        })));
+        .map(async (s) => {
+          const replay = built.get(s.roomCode)?.replay ?? null;
+          const recorded = (await commitsFor(s.roomCode)).length;
+          return {
+            roomCode: s.roomCode,
+            startedAt: s.startedAt,
+            lastAt: s.lastAt,
+            finished: s.finished === true,
+            partial: s.partial === true,
+            hasReplay: !!replay,
+            recordedCommits: recorded,
+            builtCommits: replay?.commits?.length ?? 0,
+            // A built replay can fall behind its recording - an early finalise
+            // once froze one at the dice roll while recording carried on. Say
+            // so rather than letting a short replay look like a short match.
+            stale: !!replay && replay.commits.length < recorded,
+            match: replay?.match ?? null,
+            players: replay?.players ?? null,
+          };
+        }));
+      sendResponse(rows);
     });
     return true;
   }

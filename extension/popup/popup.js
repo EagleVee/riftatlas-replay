@@ -53,6 +53,12 @@ async function refresh() {
     head.append(room, copy);
     if (!row.finished) head.append(tag('recording', 'live'));
     if (row.partial) head.append(tag('partial', 'partial'));
+    if (row.stale) {
+      const t = tag(`rebuild — ${row.builtCommits}/${row.recordedCommits}`, 'partial');
+      t.title = `The replay covers ${row.builtCommits} of ${row.recordedCommits} recorded actions. `
+        + 'Press Build to bring it up to date.';
+      head.append(t);
+    }
     li.append(head);
 
     const sub = document.createElement('div');
