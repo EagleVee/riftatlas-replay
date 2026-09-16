@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RiftAtlas Replay</title>
+<!-- No outbound connections: a replay must open with the network off. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
+<link rel="stylesheet" href="player.css">
+
+<header id="bar">
+  <div id="title">
+    <strong id="room">RiftAtlas Replay</strong>
+    <span id="meta"></span>
+  </div>
+  <div id="fog" hidden></div>
+  <label id="open">
+    Open replay<input type="file" id="file" accept=".json,.ratlas.json" hidden>
+  </label>
+</header>
+
+<nav id="rail" aria-label="Chapters"></nav>
+
+<main>
+  <section id="board" aria-label="Board">
+    <div class="seat" id="seat-top"></div>
+    <div class="field" id="field"></div>
+    <div class="seat" id="seat-bottom"></div>
+  </section>
+
+  <aside id="side">
+    <div class="tabs" role="tablist">
+      <button data-tab="events" class="on" role="tab">Moves</button>
+      <button data-tab="chain" role="tab">Chain</button>
+      <button data-tab="chat" role="tab">Chat</button>
+    </div>
+    <ol id="events" class="pane on"></ol>
+    <div id="chain" class="pane"></div>
+    <div id="chat" class="pane"></div>
+  </aside>
+</main>
+
+<footer id="transport">
+  <div id="track" role="slider" aria-label="Timeline" tabindex="0">
+    <div id="bands"></div>
+    <div id="ticks"></div>
+    <div id="head"></div>
+  </div>
+  <div id="controls">
+    <button id="b-start" title="First (Home)">⏮</button>
+    <button id="b-chapter-prev" title="Previous chapter ([)">⤒</button>
+    <button id="b-event-prev" title="Previous move (↑)">◀◀</button>
+    <button id="b-prev" title="Previous step (←)">◀</button>
+    <button id="b-play" title="Play / pause (Space)">▶</button>
+    <button id="b-next" title="Next step (→)">▶</button>
+    <button id="b-event-next" title="Next move (↓)">▶▶</button>
+    <button id="b-chapter-next" title="Next chapter (])">⤓</button>
+    <button id="b-end" title="Last (End)">⏭</button>
+    <span id="pos"></span>
+    <span id="now"></span>
+  </div>
+</footer>
+
+<script type="module" src="player.js"></script>
