@@ -5,7 +5,7 @@
  * accumulates in worker memory, so an MV3 worker termination mid-match costs
  * nothing.
  */
-import { SESSIONS, COMMITS, EXTRAS, put, get } from './store.js';
+import { SESSIONS, COMMITS, EXTRAS, put, get, recordingId, activeRecordingFor } from './store.js';
 
 /** Frame types that carry authoritative state or match context. */
 const KEEP = new Set([
@@ -47,14 +47,20 @@ async function handleFrame({ data, at }) {
   try { msg = JSON.parse(data); } catch { return null; }
   if (!KEEP.has(msg.type)) return null;
 
-  const roomCode = msg.gameInstanceId;
-  if (!roomCode) return null;
+  const room = msg.gameInstanceId;
+  if (!room) return null;
   msg = redact(msg);
 
-  let session = await get(SESSIONS, roomCode);
+  // Find the recording in progress for this room, or begin one. Room codes are
+  // five characters and get reused, so a returning code must not be appended to
+  // a finished recording - that would merge two unrelated matches, the new
+  // one's early sequences overwriting the old one's.
+  let session = await activeRecordingFor(room);
   if (!session) {
     session = {
-      roomCode, startedAt: at, lastAt: at,
+      roomCode: recordingId(room, at),   // the store's key: a recording id
+      room,                              // the human-facing room code
+      startedAt: at, lastAt: at,
       origin: null, shell: null, viewer: null,
       // A recorder attached mid-match has no sequence-0 snapshot and cannot
       // anchor; the replay is marked partial rather than looking complete.
@@ -62,6 +68,7 @@ async function handleFrame({ data, at }) {
       finished: false,
     };
   }
+  const roomCode = session.roomCode;   // every store write is keyed by this
   session.lastAt = at;
 
   switch (msg.type) {

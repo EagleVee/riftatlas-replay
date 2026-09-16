@@ -81,6 +81,27 @@ Two further faults surfaced while testing the fix under repeated worker kills:
 Verified: 400 frames pushed through six worker terminations arrive complete and
 in order, no holes.
 
+## 2e. Room codes are reused — handled 2026-09-16
+
+RiftAtlas room codes are five characters, so they come round again. Three
+consequences, two of which were bugs:
+
+- **Recordings merged.** Everything was keyed by room code, so a returning code
+  appended to the old recording and the new match's early sequences overwrote
+  the old one's. Recordings are now keyed `<roomCode>@<startedAt>`, and a
+  finished recording is never appended to.
+- **A recording that could not be built stayed open forever**, because closing
+  and building were the same step and building can fail. The next match in that
+  room then merged into it. Closing is now independent of building.
+- **Joining an old code by hand** can drop you into a stranger's match in
+  progress. Spectating by code is a public RiftAtlas feature, so this is rude
+  rather than dangerous, and the popup now asks before joining anything more
+  than a few hours old.
+
+Replay mode is unaffected: it answers the match connection itself and never
+reaches RiftAtlas' servers, so a recycled code cannot make it show the wrong
+match.
+
 ## 3. Protocol drift
 
 `setupOrderVersion: 2` and `rewindProtocolVersion` show the server versions its

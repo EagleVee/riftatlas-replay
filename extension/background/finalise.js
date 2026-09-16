@@ -5,7 +5,7 @@
  * Finalisation is a pure function of what is already in IndexedDB, so a worker
  * that was killed mid-match can still produce a correct replay on wake.
  */
-import { SESSIONS, get, commitsFor, extrasFor } from './store.js';
+import { SESSIONS, get, commitsFor, extrasFor, roomOf } from './store.js';
 import { Timeline } from '../shared/reducer.js';
 
 const FORMAT = 'riftatlas-replay';
@@ -24,15 +24,16 @@ function maskedZones(state) {
   return out;
 }
 
-export async function buildReplay(roomCode) {
-  const session = await get(SESSIONS, roomCode);
-  if (!session?.origin) throw new Error(`no anchoring snapshot for ${roomCode}`);
+export async function buildReplay(recordingId) {
+  const session = await get(SESSIONS, recordingId);
+  if (!session?.origin) throw new Error(`no anchoring snapshot for ${recordingId}`);
+  const roomCode = session.room ?? roomOf(recordingId);
 
-  const commits = await commitsFor(roomCode);
-  const snapshots = await extrasFor(roomCode, 'snapshot');
-  const chat = (await extrasFor(roomCode, 'chat')).map((r) => r.entry)
+  const commits = await commitsFor(recordingId);
+  const snapshots = await extrasFor(recordingId, 'snapshot');
+  const chat = (await extrasFor(recordingId, 'chat')).map((r) => r.entry)
     .sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
-  const errors = new Map((await extrasFor(roomCode, 'error')).map((r) => [r.sequence, r.code]));
+  const errors = new Map((await extrasFor(recordingId, 'error')).map((r) => [r.sequence, r.code]));
 
   const timeline = new Timeline();
   timeline.ingest({ type: 'authoritative_snapshot', ...session.origin });
@@ -168,6 +169,7 @@ export async function buildReplay(roomCode) {
     players,
     shell: session.shell ?? null,
     origin: session.origin,
+    recordingId,
     commits: commits.map(({ roomCode: _ignored, ...c }) => c),
     gaps,
     chat,
