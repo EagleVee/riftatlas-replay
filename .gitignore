@@ -1,0 +1,9 @@
+# Raw captures contain live JWTs, party keys, and player names. Never commit.
+*.har
+*.jsonl
+
+__pycache__/
+*.pyc
+node_modules/
+extension/dist/
+.DS_Store
