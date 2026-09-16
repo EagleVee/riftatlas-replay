@@ -120,14 +120,45 @@ async function handleFrame({ data, at }) {
 }
 
 /**
- * Has the match ended? The reference capture ended by concession, narrated in
- * the gameplay log. A normal victory is unverified (open question 5), so socket
- * close remains the backstop trigger.
+ * Has the match ended?
+ *
+ * Text matching here is delicate. A first pass looked for " wins", which the
+ * initiative roll trips on sequence 3 of every game - "BertoC wins initiative
+ * (16 vs 2) and decides who plays first." That froze the built replay at the
+ * dice roll. So: concessions are identified by the server's own log id, and a
+ * victory line must end with "wins." rather than merely contain the word.
+ *
+ * A normal victory is still unverified (open question 5), which is why
+ * finalisation never relies on this alone - the socket closing rebuilds
+ * regardless.
+ */
+const CONCESSION_ID = /^log_concession/;
+const VICTORY_TEXT = /\bwins\.\s*$|\bwins the (?:game|match)\b/i;
+
+export function isTerminalLogEntry(entry) {
+  if (!entry) return false;
+  if (CONCESSION_ID.test(entry.id ?? '')) return true;
+  const text = entry.text ?? '';
+  if (/initiative/i.test(text)) return false;   // the dice roll is not an ending
+  return VICTORY_TEXT.test(text);
+}
+
+/**
+ * A match can end without any commit saying so. In the reference capture the
+ * concession arrived only inside the snapshot the server pushed to re-anchor
+ * the client after a resync - there was no log_insert carrying it anywhere. So
+ * check snapshots too, or the ending is invisible on exactly the matches where
+ * something went wrong.
  */
 export function looksFinished(msg) {
-  if (msg.type !== 'authoritative_patch_commit') return false;
-  const inserted = (msg.patch?.operations ?? [])
-    .filter((op) => op.op === 'log_insert')
-    .flatMap((op) => op.entries ?? []);
-  return inserted.some((e) => / wins\b/.test(e.text ?? '') || /conceded/.test(e.text ?? ''));
+  if (msg.type === 'authoritative_patch_commit') {
+    return (msg.patch?.operations ?? [])
+      .filter((op) => op.op === 'log_insert')
+      .flatMap((op) => op.entries ?? [])
+      .some(isTerminalLogEntry);
+  }
+  if (msg.type === 'authoritative_snapshot') {
+    return (msg.gameplayLog ?? []).some(isTerminalLogEntry);
+  }
+  return false;
 }
