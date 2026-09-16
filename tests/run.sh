@@ -27,7 +27,11 @@ echo "== build replay =="
 (cd "$ROOT/tools" && python3 har_to_replay.py "$HAR" "$TMP/replay.ratlas.json")
 
 echo
-echo "== navigation index =="
+echo "== replay structure (any replay) =="
+node "$ROOT/tests/replay-smoke.mjs" "$TMP/replay.ratlas.json"
+
+echo
+echo "== navigation index (reference match only) =="
 node "$ROOT/tests/index-shape.mjs" "$TMP/replay.ratlas.json"
 
 echo

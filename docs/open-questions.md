@@ -46,6 +46,14 @@ The recorder is still required.
 Still worth capturing: whether `gameHistory:list` covers matches played before
 the account existed, and how far back it retains.
 
+## 2c. Action vocabulary grows — first sighting 2026-09-16
+
+Recording a live Solo Lab room produced `choose_single_player_turn_order`, which
+is not in the reference capture's list (that match used `choose_first_player`).
+Confirms the vocabulary is per-mode and not fully enumerated. The reducer is
+unaffected - it dispatches on patch verbs, not action types - but anything that
+switches on `action.type` must tolerate unknown values.
+
 ## 3. Protocol drift
 
 `setupOrderVersion: 2` and `rewindProtocolVersion` show the server versions its

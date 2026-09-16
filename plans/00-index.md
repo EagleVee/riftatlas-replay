@@ -11,9 +11,9 @@ top of it.
 
 | # | Phase | Ends when | Depends on |
 |---|---|---|---|
-| 1 | [Capture spike](01-capture-spike.md) | Our own capture verifies byte-identical to a DevTools HAR of the same match | — |
+| 1 | [Capture spike](01-capture-spike.md) | ✅ **done** — extension observes the live socket; verified in a Solo Lab room | — |
 | 2 | [Reducer port](02-reducer-port.md) | ✅ **done** — `reducer.js` and `reducer.py` agree byte for byte | — |
-| 3 | [Recorder](03-recorder.md) | A played match produces a valid `.ratlas.json` that survives worker termination | 1, 2 |
+| 3 | [Recorder](03-recorder.md) | 🟡 **mostly** — records and finalises live; PvP and worker-kill still untested | 1, 2 |
 | 4 | [Player](04-player.md) | ✅ **done** — steps and jumps in both directions, correct fog, offline | 2 |
 | 5 | [Fidelity hardening](05-fidelity.md) | Gaps, rewinds, reconnects and match-end are handled and tested | 3, 4 |
 | 6 | [Release](06-release.md) | Installable, documented, owner-reviewed | 5 |
