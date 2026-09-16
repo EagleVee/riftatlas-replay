@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RiftAtlas Replay",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Records your RiftAtlas matches and replays them offline. Observes only - never sends, modifies, or delays a game action.",
   "icons": {
     "16": "icons/icon16.png",

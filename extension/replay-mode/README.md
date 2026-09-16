@@ -39,7 +39,24 @@ two seconds in. Injecting after that, the real socket wins and replay mode
 correctly refuses to displace it. Arming has to happen at `document_start`.
 
 The popup therefore parks the replay in session storage, registers the arming
-scripts at `document_start`, and reloads the tab. Two things that cost a debug
+scripts at `document_start`, and reloads the tab.
+
+**And the client has to be put into the room.** Intercepting the socket is not
+enough: the app only opens one once it believes it is in a room, and a fresh
+page sits in the lobby with nothing to intercept. Driving its Join control does
+not work either — joining by code asks the server whether the room exists, and a
+finished match's room is usually gone.
+
+So replay mode restores the room the way the client restores its own after a
+reload. It keeps the current room in `riftbound_simulator_active_room`
+(sessionStorage, per tab) and a recovery copy in `riftbound_simulator_last_room`
+(localStorage). Writing those before the app boots makes it open the socket by
+itself, with no server lookup, and the intercept answers. Leaving replay mode
+puts the viewer's own room state back.
+
+This was the bug that made the feature look like it did nothing: earlier tests
+passed only because the browser happened to remember the room already. From a
+cold lobby it landed on the deck list every time. Two things that cost a debug
 cycle each: session storage is closed to content scripts until
 `setAccessLevel('TRUSTED_AND_UNTRUSTED_CONTEXTS')` is called, so `arm.js` read
 nothing at all; and both scripts run at `document_start` with no ordering
