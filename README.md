@@ -23,6 +23,10 @@ and [`INSTALL.md`](INSTALL.md) for the guide to hand a tester.
 alongside the tester guide. They unzip it, open `chrome://extensions`, enable
 Developer mode, and *Load unpacked*. No store listing needed.
 
+**To work on it:** [`BUILD.md`](BUILD.md). There is no build step — the
+extension is plain ES modules with no dependencies, so what ships is exactly
+what is in the repository.
+
 Built with the permission of the RiftAtlas owner.
 
 ## The finding this is built on
@@ -107,6 +111,8 @@ format and visible in the player.
 | [`docs/reconstruction-feasibility.md`](docs/reconstruction-feasibility.md) | Can a match be re-staged inside Solo Lab? |
 | [`docs/open-questions.md`](docs/open-questions.md) | What one capture cannot answer |
 | [`plans/00-index.md`](plans/00-index.md) | Six-phase build plan |
+| [`BUILD.md`](BUILD.md) | Building, testing and packaging from source |
+| [`INSTALL.md`](INSTALL.md) | The guide to hand a tester |
 
 ## Tools and tests
 
