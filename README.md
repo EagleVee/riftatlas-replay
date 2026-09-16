@@ -61,6 +61,7 @@ format and visible in the player.
 | [`docs/protocol-analysis.md`](docs/protocol-analysis.md) | What the capture showed, and the replayability proof |
 | [`docs/protocol-reference.md`](docs/protocol-reference.md) | Frame types, patch operations, state shape |
 | [`docs/replay-format.md`](docs/replay-format.md) | The `.ratlas.json` specification |
+| [`docs/replay-navigation.md`](docs/replay-navigation.md) | Step/event/chapter model for forward-backward review |
 | [`docs/architecture.md`](docs/architecture.md) | Extension design and its trade-offs |
 | [`docs/reconstruction-feasibility.md`](docs/reconstruction-feasibility.md) | Can a match be re-staged inside Solo Lab? |
 | [`docs/open-questions.md`](docs/open-questions.md) | What one capture cannot answer |

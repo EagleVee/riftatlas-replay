@@ -119,6 +119,13 @@ derived analysis, not here.
 replay's timeline is stable regardless of when it is played back. Absolute
 timestamps remain available on gameplay-log entries.
 
+**The narration is derivable, and must be derived.** The server trims its own
+gameplay log as a match runs, so `origin.gameplayLog` plus the final state holds
+only a fraction of what was narrated — 99 of 291 events on the reference capture.
+The `log_insert` operations inside `commits[]` carry all of them, so no extra
+field is needed; a reader builds the full event list by accumulating across
+sequences. See [`replay-navigation.md`](replay-navigation.md).
+
 **`gaps[]`** must be non-lossy: if the chain broke and no snapshot was captured
 at the far side, emit the gap with `"recovery": "none"` and accept that the
 replay ends there. Do not interpolate.
