@@ -40,6 +40,12 @@
       const href = String(url);
       if (!href.includes(MATCH)) return;
 
+      // Replay mode installs before this wrapper, so a socket it fakes arrives
+      // here looking like a real one. Recording those would file a replay's own
+      // playback as a fresh match - and could overwrite the real recording of
+      // the room being replayed.
+      if (this.__riftatlasSynthetic || window.__riftatlasReplayModeActive) return;
+
       const socketId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       // Replay mode reads this to refuse arming while a real match is open.
       if (href.includes('/parties/match/')) window.__riftatlasLiveMatch = href;
