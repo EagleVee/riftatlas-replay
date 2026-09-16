@@ -74,8 +74,32 @@ than a few hundred clicks.
 
 ## Playback
 
-One step per second. The middle button carries three states in one fixed 30x30
-slot, so swapping glyphs cannot move anything:
+A full second per step, except where that reads badly.
+
+One player action often lands as several commits: exhausting four runes is four
+of them, and so is nudging a counter up four times. Measured on the reference
+match, **21 runs of three or more identical actions cover 91 of its 369
+commits** — `adjust_card_counter` and `rune_batch` account for most of them, and
+the longest run is six.
+
+So a step earns the full beat only when it is something new to look at. A step
+that repeats the previous action, or that the game did not narrate in its own
+log, flicks past at 180ms. Runes still visibly go down one at a time; they just
+do not each cost a second.
+
+| | |
+|---|---|
+| Flat one second per commit | 370s (6.2 min) |
+| Run-aware | 249s (4.1 min) — 148 fast steps, 222 full beats |
+
+Measured on the live client: a six-long `rune_batch` run plays in two seconds,
+where a flat beat would have managed two of its six steps.
+
+The standalone player paces the same way, over narrated events rather than
+commits.
+
+The middle button carries three states in one fixed 30x30 slot, so swapping
+glyphs cannot move anything:
 
 | Glyph | State |
 |---|---|

@@ -58,6 +58,7 @@
 
   const states = new Map();   // sequence -> [state, log]
   const order = [];
+  const meta = new Map();     // sequence -> { action, narrated }
 
   function clone(v) { return structuredClone(v); }
 
@@ -134,6 +135,10 @@
       }
       for (const op of commit.operations) apply(state, log, op);
       seq = commit.sequence;
+      meta.set(seq, {
+        action: commit.action?.type ?? null,
+        narrated: commit.operations.some((op) => op.op === 'log_insert'),
+      });
       states.set(seq, [clone(state), clone(log)]);
       order.push(seq);
     }
@@ -263,14 +268,37 @@
 
   // ---------------------------------------------------------------- controls
 
-  /** One step per second, matching how a person reads a match back. */
-  const STEP_MS = 1000;
+  /**
+   * Playback pacing.
+   *
+   * A flat one second per commit reads badly, because one player action often
+   * lands as several commits: exhausting four runes is four of them, and so is
+   * nudging a counter up four times. Measured on the reference match, 21 runs
+   * of three or more identical actions cover 91 of its 369 commits.
+   *
+   * So a step gets the full beat only when it is something new to look at.
+   * A step that repeats the previous action, or that the game did not narrate
+   * in its own log, flicks past. The reference match plays in about four
+   * minutes rather than six, and the runes still visibly go down one by one.
+   */
+  const BASE_MS = 1000;
+  const RUN_MS = 180;
+  let playing = false;
   let timer = null;
 
   const atEnd = () => cursor >= order.length - 1;
 
+  /** How long to hold before showing `order[index]`. */
+  function delayFor(index) {
+    const here = meta.get(order[index]);
+    if (!here) return BASE_MS;
+    const previous = index > 0 ? meta.get(order[index - 1]) : null;
+    const continuesRun = !!previous && !!here.action && here.action === previous.action;
+    return (continuesRun || !here.narrated) ? RUN_MS : BASE_MS;
+  }
+
   /**
-   * `fromAuto` distinguishes the timer's own advance from a person reaching for
+   * `fromAuto` distinguishes playback's own advance from a person reaching for
    * the controls. Any manual move stops playback - otherwise the bar keeps
    * advancing out from under someone who just scrubbed somewhere to look at it.
    */
@@ -281,24 +309,33 @@
     paint();
   }
 
+  function schedule() {
+    if (!playing) return;
+    if (atEnd()) { stop(); return; }
+    timer = setTimeout(() => {
+      timer = null;
+      if (!playing) return;
+      seek(cursor + 1, true);
+      schedule();
+    }, delayFor(cursor + 1));
+  }
+
   function stop() {
-    if (!timer) return;
-    clearInterval(timer);
-    timer = null;
+    if (!playing && !timer) return;
+    playing = false;
+    if (timer) { clearTimeout(timer); timer = null; }
     paintTransport();
   }
 
   function play() {
-    if (timer) return;
-    if (atEnd()) seek(0);          // finished: start over
-    timer = setInterval(() => {
-      if (atEnd()) { stop(); return; }
-      seek(cursor + 1, true);
-    }, STEP_MS);
+    if (playing) return;
+    if (atEnd()) seek(0);
+    playing = true;
+    schedule();
     paintTransport();
   }
 
-  const toggle = () => (timer ? stop() : play());
+  const toggle = () => (playing ? stop() : play());
 
   const LAST = order.at(-1);
   const DIGITS = String(LAST).length;
@@ -384,7 +421,7 @@
    * 30x30 button, so swapping them cannot change the bar's geometry.
    */
   function paintTransport() {
-    if (timer) {
+    if (playing) {
       transport.textContent = '\u23F8';
       transport.title = 'Pause (space)';
     } else if (atEnd()) {
