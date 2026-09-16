@@ -30,6 +30,18 @@ Byte-identical, including the 99-entry gameplay log. A replay player does not
 need to re-implement RiftAtlas' rules — it replays patches the server already
 computed.
 
+## RiftAtlas is a manual simulator
+
+There is no rules engine. The action vocabulary is board manipulation —
+`move_card`, `toggle_exhausted`, `create_token`, `set_score`,
+`take_card_from_deck` — because the players enforce the rules themselves.
+
+This matters more than it sounds. It means a captured match can be re-staged
+inside a Solo Lab room using nothing but documented UI actions: no rules to
+satisfy, no deck validation, no draw order to defeat. See
+[`docs/reconstruction-feasibility.md`](docs/reconstruction-feasibility.md) — and
+the argument there for why the replay system should *not* be built that way.
+
 ## The two constraints worth knowing up front
 
 **Captures are viewer-scoped.** Opposing hidden zones arrive masked as
@@ -50,6 +62,7 @@ format and visible in the player.
 | [`docs/protocol-reference.md`](docs/protocol-reference.md) | Frame types, patch operations, state shape |
 | [`docs/replay-format.md`](docs/replay-format.md) | The `.ratlas.json` specification |
 | [`docs/architecture.md`](docs/architecture.md) | Extension design and its trade-offs |
+| [`docs/reconstruction-feasibility.md`](docs/reconstruction-feasibility.md) | Can a match be re-staged inside Solo Lab? |
 | [`docs/open-questions.md`](docs/open-questions.md) | What one capture cannot answer |
 | [`plans/00-index.md`](plans/00-index.md) | Six-phase build plan |
 
@@ -63,6 +76,10 @@ python3 tools/har_to_jsonl.py capture.har frames.jsonl   # extract + redact
 python3 tools/verify.py frames.jsonl                     # prove replayability
 python3 tools/analyze.py frames.jsonl                    # protocol inventory
 ```
+
+`tools/probe_client.mjs` (Node + Playwright) fetches the production client
+bundles and dumps the action vocabulary — re-run it after a RiftAtlas deploy to
+detect protocol drift.
 
 To take a capture: DevTools → Network → filter WS → play a match → right-click →
 *Save all as HAR with content*.

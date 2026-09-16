@@ -3,18 +3,22 @@
 Things one capture cannot answer. Each names what would answer it, so these get
 resolved by measurement rather than argument.
 
-## 1. Card art resolution — blocks visual fidelity, not v1
+## 1. Card art resolution — ANSWERED 2026-09-16
 
-The socket carries `cardCode` (`VEN-191`, `OGN-012`, `SFD-057`) and nothing else.
-Our HAR was filtered to WebSocket traffic, so the HTTP requests that fetch art
-were never captured.
+Art lives at
+`https://assets.riftatlas-workers.com/riftbound/cards/<small-v2|original>/<CARD-CODE>.webp`,
+unauthenticated, verified live. The full card catalog (name, cost, type, domains,
+rules text, might, rarity, set, keywords, subtypes, `imageUrl`) ships in the
+client bundle. Details in
+[`reconstruction-feasibility.md`](reconstruction-feasibility.md#incidental-finding-card-art-is-resolved).
 
-**To answer:** capture a full HAR (no filter) of a match page load and inspect
-image requests for a `cardCode` → URL pattern.
+**Still open, and not a technical question:** whether to use it. Hotlinking costs
+the owner bandwidth and breaks offline playback; bundling is a licensing question
+under the Riot policy RiftAtlas operates below. Ask the owner. v1 ships text
+tiles and is useful without art.
 
-**Then decide:** hotlinking RiftAtlas' CDN from a replay player is rude at best
-and breaks offline playback; bundling art is a licensing question for the owner.
-Ask before doing either. v1 ships text tiles and is useful without this.
+The catalog is the more valuable half — bundling it gives the player real card
+data with no network access.
 
 ## 2. Spectator masking — decides whether full-information replays exist
 
@@ -25,6 +29,10 @@ everything, spectating is a far better recording path than merging two player
 captures.
 
 **To answer:** spectate one match and capture it.
+
+Note that Solo Lab is *not* an answer here: it grants control of every seat, but
+only within a room you created, and tells us nothing about how a spectator sees
+someone else's live match.
 
 ## 3. Protocol drift
 
