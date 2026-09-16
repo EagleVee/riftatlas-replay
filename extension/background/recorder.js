@@ -95,10 +95,19 @@ async function handleFrame({ data, at }) {
       });
       break;
 
-    case 'room_shell_sync':
+    case 'room_shell_sync': {
       if (!session.shell) session.shell = msg.sessionDoc;
       session.viewer = msg.sessionDoc?.viewer ?? session.viewer;
+      // Who the room currently considers gone. A match is over for our purposes
+      // when nobody is left in it - a far steadier signal than reading the log.
+      const doc = msg.sessionDoc ?? {};
+      const seats = [doc.selfPlayer?.id, ...(doc.publicPlayers ?? []).map((p) => p.id)]
+        .filter(Boolean);
+      const gone = Object.keys(doc.disconnectedAtByPlayerId ?? {});
+      session.seatCount = seats.length || session.seatCount;
+      session.everyoneLeft = seats.length > 0 && seats.every((id) => gone.includes(id));
       break;
+    }
 
     case 'chat_sync':
     case 'chat_append':
@@ -141,6 +150,11 @@ export function isTerminalLogEntry(entry) {
   const text = entry.text ?? '';
   if (/initiative/i.test(text)) return false;   // the dice roll is not an ending
   return VICTORY_TEXT.test(text);
+}
+
+/** Has everyone left the room? Set from the room document as it arrives. */
+export function everyoneLeft(session) {
+  return session?.everyoneLeft === true;
 }
 
 /**

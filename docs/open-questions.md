@@ -85,8 +85,20 @@ happens on sequence 3 of every game. Concessions are now identified by the
 server's own `log_concession` id prefix, and a victory line must end with
 "wins." rather than merely contain the word.
 
-A normal victory is still unverified, which is why finalisation never relies on
-detection alone: the socket closing rebuilds regardless.
+A normal victory is still unverified, which is why reading the log is now the
+*last* signal rather than the first. Finalisation triggers, in order of
+reliability:
+
+1. **The socket closes** — always rebuilds every session, finished or not.
+2. **A new room's frames arrive** — whatever came before it is over.
+3. **Everyone has left the room** — from `disconnectedAtByPlayerId` in the room
+   document, against the seated players.
+4. **The log looks like an ending** — a hint only. It has been wrong before.
+
+A live PvP capture (room 9BUDM) confirmed the failure this ordering prevents:
+*"ONickO wins initiative (4 vs 8) and decides who plays first."* had been read
+as a victory, freezing that replay at three commits and crediting ONickO with a
+win before either player had drawn a card.
 
 ## 5b. Match-end detection
 
