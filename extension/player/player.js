@@ -10,6 +10,7 @@
  * outbound connections.
  */
 import { timelineFromReplay, buildIndex, Cursor } from '../shared/timeline-index.js';
+import { harToReplay, looksLikeHar } from '../shared/har-import.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -361,6 +362,8 @@ function load(replay) {
     winner ? `${winner.name} won by ${replay.match.outcome.reason}` : null,
   ].filter(Boolean).join('  -  ');
 
+  const hint = $('#hint');
+  if (hint) hint.hidden = true;
   renderRail();
   renderEvents();
   renderTrack();
@@ -380,9 +383,32 @@ function load(replay) {
   }
 }
 
-$('#file').addEventListener('change', async (e) => {
+/** Accept either a .ratlas.json replay or a raw DevTools .har capture. */
+async function openFile(file) {
+  $('#meta').textContent = `reading ${file.name}…`;
+  const text = await file.text();
+  try {
+    const parsed = JSON.parse(text);
+    load(looksLikeHar(text) ? harToReplay(parsed) : parsed);
+  } catch (err) {
+    $('#room').textContent = 'Could not open';
+    $('#meta').textContent = err.message;
+  }
+}
+
+$('#file').addEventListener('change', (e) => {
   const file = e.target.files?.[0];
-  if (file) load(JSON.parse(await file.text()));
+  if (file) openFile(file);
+});
+
+// Dropping a capture anywhere on the page opens it.
+addEventListener('dragover', (e) => { e.preventDefault(); document.body.classList.add('dropping'); });
+addEventListener('dragleave', () => document.body.classList.remove('dropping'));
+addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('dropping');
+  const file = e.dataTransfer?.files?.[0];
+  if (file) openFile(file);
 });
 
 $('#track').addEventListener('click', (e) => {

@@ -107,3 +107,7 @@ main { display: grid; grid-template-columns: minmax(0,1fr) 330px; min-height: 0;
   main { grid-template-columns: 1fr; grid-template-rows: 1fr 240px; }
   #side { border-left: 0; border-top: 1px solid var(--line); }
 }
+
+#hint { margin: 0; padding: 22px 14px; color: var(--dim); text-align: center; }
+#hint code { color: var(--cyan); }
+body.dropping { outline: 2px dashed var(--cyan); outline-offset: -8px; }

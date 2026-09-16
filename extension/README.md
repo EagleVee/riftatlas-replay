@@ -63,7 +63,32 @@ a real room:
   overwritten by a snapshot write that had read the session first. Frame
   handling is now serialised through a promise queue.
 
-## Running the player
+## Opening a replay
+
+Click the toolbar icon, then **Open player** — or go straight to
+`chrome-extension://<id>/player/player.html`.
+
+The player takes either:
+
+- a **`.ratlas.json`** replay, exported from the popup or built by
+  `tools/har_to_replay.py`; or
+- a raw DevTools **`.har`** capture, converted in the browser on open
+  (about six seconds for a twenty-minute match).
+
+Use **Open replay or HAR**, or just drop the file anywhere on the page. No
+server, no network, no RiftAtlas account.
+
+## Capturing a HAR by hand
+
+DevTools → Network → filter **WS** → play a match → right-click the request →
+*Save all as HAR with content*. Then drop it on the player.
+
+Note that a HAR carries a live auth token and your name. The player redacts on
+import and the exporter never writes credentials, but the raw `.har` itself is
+sensitive — keep it out of the repo (`.gitignore` covers `*.har`) and off
+anywhere shared.
+
+## Running the player from source
 
 It is a static page and needs a server only because ES modules do not load from
 `file://`:
