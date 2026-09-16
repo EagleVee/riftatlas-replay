@@ -12,6 +12,49 @@ import { SESSIONS, REPLAYS, all, get, put, dropRoom } from './store.js';
 /** Rooms whose socket closed or whose log announced a result, awaiting finalise. */
 const pendingFinalise = new Set();
 
+const ARMING_SCRIPTS = [
+  {
+    id: 'riftatlas-replay-arm',
+    matches: ['https://play.riftatlas.com/*'],
+    js: ['replay-mode/arm.js'],
+    runAt: 'document_start',
+    world: 'ISOLATED',
+  },
+  {
+    id: 'riftatlas-replay-inject',
+    matches: ['https://play.riftatlas.com/*'],
+    js: ['replay-mode/inject.js'],
+    runAt: 'document_start',
+    world: 'MAIN',
+  },
+];
+
+async function registerArmingScripts() {
+  await unregisterArmingScripts();
+  // Session storage is closed to content scripts by default, so arm.js would
+  // read nothing. Widen it for the pending replay handover.
+  await chrome.storage.session.setAccessLevel({
+    accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS',
+  }).catch(() => {});
+  await chrome.scripting.registerContentScripts(ARMING_SCRIPTS);
+}
+
+async function unregisterArmingScripts() {
+  const ids = ARMING_SCRIPTS.map((s) => s.id);
+  try {
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids });
+    if (existing.length) {
+      await chrome.scripting.unregisterContentScripts({ ids: existing.map((s) => s.id) });
+    }
+  } catch { /* nothing registered */ }
+}
+
+// Never carry an arming registration across a browser restart.
+chrome.runtime.onStartup.addListener(() => {
+  unregisterArmingScripts();
+  chrome.storage.session.remove('pendingReplay').catch(() => {});
+});
+
 async function finalise(roomCode) {
   try {
     const replay = await buildReplay(roomCode);
@@ -93,31 +136,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (!row) return sendResponse({ ok: false, error: 'build the replay first' });
 
       const [tab] = await chrome.tabs.query({ url: 'https://play.riftatlas.com/*' });
-      const target = tab ?? await chrome.tabs.create({ url: 'https://play.riftatlas.com/' });
-      if (!tab) await new Promise((r) => setTimeout(r, 3500));
-      await chrome.tabs.update(target.id, { active: true });
+      if (!tab) {
+        return sendResponse({ ok: false, error: 'open play.riftatlas.com first' });
+      }
 
-      // Arming and injection are two separate steps in the page's own world:
-      // the replay is handed over first, then the injector consumes it.
-      const armed = await chrome.scripting.executeScript({
-        target: { tabId: target.id }, world: 'MAIN',
-        func: (replay) => {
-          if (window.__riftatlasLiveMatch) return { ok: false, error: 'a live match is open in this tab' };
-          window.__riftatlasReplayArm = { replay };
-          return { ok: true };
-        },
-        args: [row.replay],
-      });
-      const first = armed[0]?.result;
-      if (!first?.ok) return sendResponse(first ?? { ok: false, error: 'could not arm' });
-
-      await chrome.scripting.executeScript({
-        target: { tabId: target.id }, world: 'MAIN',
-        files: ['replay-mode/inject.js'],
-      });
+      // Replay mode must install before the page opens its match socket, about
+      // two seconds into load. So park the replay, register the arming scripts
+      // at document_start, and reload the tab - arming after the fact loses the
+      // race and replay mode rightly refuses to displace a real socket.
+      await chrome.storage.session.set({ pendingReplay: row.replay });
+      await registerArmingScripts();
+      await chrome.tabs.update(tab.id, { active: true, url: 'https://play.riftatlas.com/game' });
       sendResponse({ ok: true, roomCode: msg.roomCode });
     })().catch((e) => sendResponse({ ok: false, error: e.message }));
     return true;
+  }
+
+  if (msg?.type === 'replayModeArmed') {
+    // Armed exactly once; take the scripts back out so replay mode is not
+    // sitting on every future page load.
+    unregisterArmingScripts();
+    return false;
   }
 
   if (msg?.type === 'openPlayer') {

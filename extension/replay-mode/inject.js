@@ -26,14 +26,26 @@
  * files with no shared code path, so neither can drift into the other.
  */
 (() => {
-  const ARM = window.__riftatlasReplayArm;
-  if (!ARM?.replay) {
-    console.warn('[riftatlas-replay] replay mode: nothing armed');
-    return;
+  // Two ways in. A replay already parked on `window` (development, and the
+  // tests) starts immediately; otherwise wait briefly for arm.js to post one
+  // from the isolated world, which is how the popup arms at document_start.
+  const parked = window.__riftatlasReplayArm;
+  if (parked?.replay) {
+    delete window.__riftatlasReplayArm;
+    begin(parked.replay, parked);
+  } else {
+    const onArm = (event) => {
+      if (event.source !== window) return;
+      if (event.data?.source !== 'riftatlas-replay-arm' || !event.data.replay) return;
+      window.removeEventListener('message', onArm);
+      begin(event.data.replay, {});
+    };
+    window.addEventListener('message', onArm);
+    // Tell arm.js we are listening, in case it ran first.
+    window.postMessage({ source: 'riftatlas-replay-ready' }, window.location.origin);
   }
-  delete window.__riftatlasReplayArm;
 
-  const replay = ARM.replay;
+function begin(replay, ARM) {
   const ROOM = replay.match?.roomCode;
   if (!ROOM) {
     console.warn('[riftatlas-replay] replay mode: replay has no room code');
@@ -464,4 +476,5 @@
   if (document.body) mount(); else addEventListener('DOMContentLoaded', mount);
 
   console.log(`[riftatlas-replay] replay mode armed for ${ROOM}: ${order.length} states`);
+}
 })();
