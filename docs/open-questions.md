@@ -54,6 +54,33 @@ Confirms the vocabulary is per-mode and not fully enumerated. The reducer is
 unaffected - it dispatches on patch verbs, not action types - but anything that
 switches on `action.type` must tolerate unknown values.
 
+## 2d. Why recordings lost frames — ANSWERED 2026-09-16
+
+Traced live, with the whole chain instrumented: page observer, bridge queue,
+service worker, IndexedDB.
+
+The service worker handled each frame fire-and-forget and returned `false`,
+which tells Chrome the listener is finished. Chrome closed the message port at
+once, so `sendMessage` resolved **before anything reached IndexedDB**. The
+bridge counted the frame delivered and moved on; if the worker was then stopped
+mid-write — which MV3 does freely — the frame was gone, with nothing to retry
+because the send had "succeeded".
+
+Frames are now acknowledged only once stored, with the port held open until
+then, and the bridge treats a missing acknowledgement as undelivered.
+
+Two further faults surfaced while testing the fix under repeated worker kills:
+
+- `chrome.runtime.sendMessage` can hang indefinitely when the worker dies
+  mid-request, stalling the entire queue behind it — worse than dropping one
+  frame, because everything after it stops too. Sends are now bounded and
+  retried.
+- Instrumentation that polls the worker keeps it alive, which masks the bug
+  entirely. A clean recording taken while monitoring proves nothing on its own.
+
+Verified: 400 frames pushed through six worker terminations arrive complete and
+in order, no holes.
+
 ## 3. Protocol drift
 
 `setupOrderVersion: 2` and `rewindProtocolVersion` show the server versions its

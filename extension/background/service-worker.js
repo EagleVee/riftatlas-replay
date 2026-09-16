@@ -90,7 +90,18 @@ let currentRoom = null;
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'observer') {
     if (msg.kind === 'frame') {
+      // Acknowledge only once the frame is persisted, and keep the port open
+      // until then by returning true.
+      //
+      // This is the frame-loss bug. Handling the frame without an
+      // acknowledgement and returning false told Chrome the listener was done,
+      // so sendMessage resolved before anything reached IndexedDB. The bridge
+      // counted the frame delivered and moved on, and if the worker was then
+      // stopped mid-write - which MV3 does freely - the frame was gone with
+      // nothing to retry. One real match lost 28 commits that way and replayed
+      // as nine moves out of 396.
       onFrame(msg).then(async (roomCode) => {
+        sendResponse({ ok: true });
         if (!roomCode) return;
 
         // A new room started: whatever came before it is finished.
@@ -112,8 +123,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         try {
           if (looksFinished(JSON.parse(msg.data))) await finalise(roomCode);
         } catch { /* already filtered by onFrame */ }
+      }).catch((error) => {
+        // Nothing was stored. Say so, so the bridge sends it again.
+        sendResponse({ ok: false, error: String(error?.message ?? error) });
       });
-    } else if (msg.kind === 'close') {
+      return true;
+    }
+
+    if (msg.kind === 'close') {
       // Rebuild every session, finished or not. An early finalise - the
       // initiative roll once read as a victory - must never be the last word,
       // or the replay stays frozen wherever the detector misfired.
