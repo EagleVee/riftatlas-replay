@@ -269,36 +269,89 @@
     paint();
   }
 
+  const LAST = order.at(-1);
+  const DIGITS = String(LAST).length;
+
   const bar = document.createElement('div');
   bar.id = 'riftatlas-replay-bar';
-  bar.style.cssText = `position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:2147483647;
-    display:flex;gap:6px;align-items:center;padding:8px 12px;border:1px solid #d8b76e;border-radius:8px;
-    background:rgba(8,12,18,.94);color:#dbe7f3;font:12px ui-sans-serif,system-ui,sans-serif;
-    box-shadow:0 6px 24px rgba(0,0,0,.6);backdrop-filter:blur(4px)`;
-  const mk = (label, title, fn) => {
-    const b = document.createElement('button');
-    b.textContent = label; b.title = title;
-    b.style.cssText = 'font:inherit;color:inherit;background:#16202c;border:1px solid #24313f;border-radius:4px;padding:3px 9px;cursor:pointer';
-    b.onclick = fn; return b;
-  };
-  const label = document.createElement('span');
-  label.style.cssText = 'margin:0 8px;min-width:230px;color:#8698ab';
-  const badge = document.createElement('strong');
-  badge.textContent = `REPLAY ${ROOM}`;
-  badge.style.cssText = 'color:#d8b76e;letter-spacing:.06em;margin-right:4px';
+  // Fixed geometry. Nothing in here may resize as the cursor moves: the board
+  // is the thing being read, and a control bar that reflows under the pointer
+  // makes stepping feel unreliable.
+  bar.style.cssText = [
+    'position:fixed', 'left:50%', 'transform:translateX(-50%)', 'bottom:14px',
+    'z-index:2147483647', 'box-sizing:border-box',
+    'width:min(520px, calc(100vw - 32px))', 'height:46px',
+    'display:flex', 'align-items:center', 'gap:6px', 'flex-wrap:nowrap',
+    'padding:0 10px', 'border:1px solid rgba(216,183,110,.55)', 'border-radius:10px',
+    'background:rgba(8,12,18,.94)', 'color:#dbe7f3',
+    'font:12px/1 ui-sans-serif,system-ui,-apple-system,sans-serif',
+    'white-space:nowrap', 'user-select:none',
+    'box-shadow:0 6px 24px rgba(0,0,0,.55)', 'backdrop-filter:blur(4px)',
+  ].join(';');
 
-  bar.append(badge,
-    mk('|<', 'First (Home)', () => seek(0)),
-    mk('<', 'Previous step (left arrow)', () => seek(cursor - 1)),
-    mk('>', 'Next step (right arrow)', () => seek(cursor + 1)),
-    mk('>|', 'Last (End)', () => seek(order.length - 1)),
-    label,
-    mk('x', 'Leave replay mode', () => location.reload()));
+  const BTN = [
+    'flex:0 0 auto', 'width:30px', 'height:30px', 'padding:0',
+    'display:grid', 'place-items:center',
+    'font:14px/1 ui-sans-serif,system-ui,sans-serif', 'color:inherit',
+    'background:#16202c', 'border:1px solid #24313f', 'border-radius:6px',
+    'cursor:pointer', 'white-space:nowrap', 'overflow:hidden',
+  ].join(';');
+
+  const mk = (glyph, title, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = glyph;
+    b.title = title;
+    b.setAttribute('aria-label', title);
+    b.style.cssText = BTN;
+    b.onmouseenter = () => { b.style.borderColor = '#74efff'; };
+    b.onmouseleave = () => { b.style.borderColor = '#24313f'; };
+    b.onclick = fn;
+    return b;
+  };
+
+  // A dot rather than the room code: the room is already shown in the client's
+  // own header, and a variable-length code would change the bar's width.
+  const badge = document.createElement('span');
+  badge.textContent = 'REPLAY';
+  badge.title = `Replaying ${ROOM}`;
+  badge.style.cssText = 'flex:0 0 auto;color:#d8b76e;letter-spacing:.1em;font-weight:700;font-size:10px';
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.min = '0';
+  slider.max = String(order.length - 1);
+  slider.step = '1';
+  slider.value = '0';
+  slider.title = 'Scrub';
+  slider.style.cssText = 'flex:1 1 auto;min-width:60px;margin:0 2px;accent-color:#d8b76e;cursor:pointer';
+  slider.oninput = () => seek(Number(slider.value));
+
+  // Tabular figures and a width reserved for the largest value, so the counter
+  // cannot nudge its neighbours as the numbers grow.
+  const counter = document.createElement('span');
+  counter.style.cssText = `flex:0 0 auto;color:#8698ab;font-variant-numeric:tabular-nums;`
+    + `min-width:${DIGITS * 2 + 3}ch;text-align:right`;
+
+  bar.append(
+    badge,
+    mk('\u23EE', 'First (Home)', () => seek(0)),
+    mk('\u25C0', 'Previous step (left arrow)', () => seek(cursor - 1)),
+    mk('\u25B6', 'Next step (right arrow)', () => seek(cursor + 1)),
+    mk('\u23ED', 'Last (End)', () => seek(order.length - 1)),
+    slider,
+    counter,
+    mk('\u2715', 'Leave replay mode', () => location.reload()),
+  );
 
   function paint() {
     const seq = order[cursor];
     const [, log] = states.get(seq);
-    label.textContent = `seq ${seq} / ${order.at(-1)}  ·  ${log[0]?.text ?? ''}`.slice(0, 96);
+    counter.textContent = `${seq}/${LAST}`;
+    slider.value = String(cursor);
+    // The client already narrates the match in its own log panel, so the text
+    // lives in a tooltip rather than in the layout.
+    bar.title = log[0]?.text ?? `Sequence ${seq}`;
   }
 
   addEventListener('keydown', (e) => {
