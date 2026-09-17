@@ -70,6 +70,19 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 /**
+ * Does this failure need a newer version, or is it worth trying again now?
+ *
+ * A patch verb the reducer has never seen can only be handled by code that
+ * knows it, so retrying changes nothing until a new version arrives. Every
+ * other failure - a storage hiccup, a worker stopped mid-build - may well
+ * succeed on a second attempt, and there is no reason to make anyone wait for a
+ * release for those.
+ */
+function needsNewVersion(problem) {
+  return /unknown patch operation/i.test(String(problem));
+}
+
+/**
  * Rebuild whatever failed to build, whenever the extension changes.
  *
  * A build fails when the reducer meets something RiftAtlas has added since -
@@ -78,9 +91,13 @@ chrome.runtime.onStartup.addListener(() => {
  * is the moment it can actually succeed. The recordings were never damaged, so
  * this repairs replays that have been broken for as long as the gap lasted.
  */
-async function rebuildFailed(why) {
+async function rebuildFailed(why, { onlyRetryable = false } = {}) {
   const sessions = await all(SESSIONS);
-  const broken = sessions.filter((s) => s.buildError || s.coverageStoppedEarly);
+  const broken = sessions.filter((s) => {
+    const problem = s.buildError || s.coverageStoppedEarly;
+    if (!problem) return false;
+    return onlyRetryable ? !needsNewVersion(problem) : true;
+  });
   if (!broken.length) return;
   console.info(`[riftatlas-replay] ${why}: rebuilding ${broken.length} replay(s) that failed before`);
   for (const session of broken) await finalise(session.roomCode, { close: false });
@@ -91,6 +108,10 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
     rebuildFailed(`extension ${reason}`).catch(() => {});
   }
 });
+
+// A browser restart is another free moment to retry, and covers an update that
+// happened while the browser was closed.
+chrome.runtime.onStartup.addListener(() => { rebuildFailed('browser start').catch(() => {}); });
 
 /**
  * Close a recording: mark it done, then build its replay.
@@ -201,7 +222,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   if (msg?.type === 'list') {
-    all(SESSIONS).then(async (sessions) => {
+    // Retry anything that could succeed without a new version, and finish
+    // before listing, so a recording that just repaired itself is not still
+    // shown as broken. Costs nothing when there is nothing to retry, which is
+    // the usual case.
+    rebuildFailed('popup opened', { onlyRetryable: true })
+      .catch(() => {})
+      .then(() => all(SESSIONS))
+      .then(async (sessions) => {
       const replays = await all(REPLAYS);
       const built = new Map(replays.map((r) => [r.roomCode, r]));
       // One pass over the commits rather than a range query per recording:
@@ -252,6 +280,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             viewerPlayerId: replay?.viewer?.playerId ?? null,
             buildError: s.buildError ?? null,
             stoppedEarly: replay?.coverage?.stoppedAt ?? null,
+            needsNewVersion: needsNewVersion(s.buildError || s.coverageStoppedEarly || ''),
           };
         }));
       sendResponse(rows);

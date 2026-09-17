@@ -254,10 +254,11 @@ refresh();
     if (trouble) {
       const problem = document.createElement('div');
       problem.className = 'problem';
-      problem.textContent = `${trouble}. The recording is intact and will rebuild `
-        + 'itself when the extension updates.';
-      problem.title = 'Usually something RiftAtlas has added that this version does not '
-        + 'know yet. A Debug dump is the useful thing to send.';
+      problem.textContent = row.needsNewVersion
+        ? `${trouble}. RiftAtlas has added something this version does not know yet — `
+          + 'send a Debug dump. Your recording is safe, and the replay will rebuild '
+          + 'itself once that is fixed.'
+        : `${trouble}. Your recording is safe; press Rebuild to try again.`;
       li.append(problem);
     }
     li.append(actions);
