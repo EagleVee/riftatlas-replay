@@ -95,6 +95,14 @@ the game's own log. A control bar sits at the bottom.
 offline with RiftAtlas closed, and opens a `.ratlas.json` someone sent you, or a
 DevTools `.har` capture dropped straight onto the page.
 
+### Moving the controls
+
+The replay controls start under the board. Drag the **REPLAY** label to put them
+anywhere, or use the move button (or double-click the label) to cycle through
+bottom-centre, middle-left and bottom-right. The two edge positions use a
+narrower stacked layout, since a wide bar does not fit there. Wherever you leave
+them is where they will be next time.
+
 ### Controls
 
 | Key | Does |

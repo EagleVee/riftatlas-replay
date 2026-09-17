@@ -77,9 +77,31 @@ control bar moved and the board did not. Replay mode now sends a monotonic wire
 sequence and carries the state of whatever replay sequence the cursor is on. The
 replay's real sequence stays in the control bar, where a viewer reads it.
 
-## The control bar
+## Where the controls sit
 
-Fixed geometry: 520x46, centred, and it does not move. Nothing in it resizes as
+Two shapes, because one does not fit everywhere. **Bar** is wide and low, which
+suits the strip under the board and nothing else; at the middle-left, or in the
+bottom-right beside the chat panel a replay has no use for, it would run off the
+screen. **Box** is a narrow stack for those edges.
+
+Three places to put it, cycled with the move button or a double-click on the
+grip:
+
+| Place | Shape |
+|---|---|
+| Bottom centre | Bar |
+| Middle left | Box |
+| Bottom right | Box |
+
+Dragging the **REPLAY** grip moves it anywhere and keeps whichever shape it had.
+The choice is remembered in `localStorage` per browser, and a custom position is
+clamped back into view when the window is resized, so a smaller window cannot
+strand the controls off-screen.
+
+## The control bar's geometry
+
+Fixed: 560x46 for the bar, 172px wide for the box, and neither moves as the
+cursor does. Nothing in it resizes as
 the cursor moves, because the board is what you are reading and a bar that
 reflows under the pointer makes stepping feel unreliable.
 

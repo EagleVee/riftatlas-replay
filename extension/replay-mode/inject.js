@@ -358,30 +358,84 @@ function begin(replay, ARM) {
   const LAST = order.at(-1);
   const DIGITS = String(LAST).length;
 
+  /**
+   * Where the controls sit, and what shape they take.
+   *
+   * The bar is wide and low, which suits the strip under the board but nothing
+   * else: at the middle-left, or tucked into the bottom-right beside the chat
+   * that a replay does not have, it would run off the screen. So there are two
+   * shapes. Each preset picks the one that fits its corner, and dragging keeps
+   * whatever shape you were using.
+   */
+  const PLACEMENT_KEY = 'riftatlas-replay.placement.v1';
+  const PRESETS = {
+    bottom: { layout: 'bar', label: 'Bottom' },
+    left: { layout: 'box', label: 'Left' },
+    'bottom-right': { layout: 'box', label: 'Bottom right' },
+  };
+  const PRESET_ORDER = ['bottom', 'left', 'bottom-right'];
+
+  function loadPlacement() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PLACEMENT_KEY) ?? 'null');
+      if (saved && (PRESETS[saved.preset] || saved.preset === 'custom')) return saved;
+    } catch { /* first run, or someone edited it by hand */ }
+    return { preset: 'bottom', layout: 'bar' };
+  }
+  function savePlacement() {
+    try { localStorage.setItem(PLACEMENT_KEY, JSON.stringify(placement)); } catch { /* full or blocked */ }
+  }
+  let placement = loadPlacement();
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #riftatlas-replay-bar{position:fixed;z-index:2147483647;box-sizing:border-box;
+      display:flex;align-items:center;gap:6px;padding:0 10px;
+      border:1px solid rgba(216,183,110,.55);border-radius:10px;
+      background:rgba(8,12,18,.94);color:#dbe7f3;
+      font:12px/1 ui-sans-serif,system-ui,-apple-system,sans-serif;
+      white-space:nowrap;user-select:none;
+      box-shadow:0 6px 24px rgba(0,0,0,.55);backdrop-filter:blur(4px)}
+    #riftatlas-replay-bar.dragging{opacity:.85;cursor:grabbing}
+    #riftatlas-replay-bar .grip{cursor:grab;color:#d8b76e;letter-spacing:.1em;
+      font-weight:700;font-size:10px;flex:0 0 auto}
+    #riftatlas-replay-bar.dragging .grip{cursor:grabbing}
+    #riftatlas-replay-bar button{flex:0 0 auto;width:30px;height:30px;padding:0;
+      display:grid;place-items:center;font:14px/1 ui-sans-serif,system-ui,sans-serif;
+      color:inherit;background:#16202c;border:1px solid #24313f;border-radius:6px;
+      cursor:pointer;white-space:nowrap;overflow:hidden}
+    #riftatlas-replay-bar button:hover{border-color:#74efff}
+    #riftatlas-replay-bar input[type=range]{accent-color:#d8b76e;cursor:pointer;margin:0}
+    #riftatlas-replay-bar .count{color:#8698ab;font-variant-numeric:tabular-nums;
+      flex:0 0 auto;text-align:right;min-width:${DIGITS * 2 + 3}ch}
+
+    /* Bar: one row under the board. */
+    #riftatlas-replay-bar.bar{width:min(560px,calc(100vw - 32px));height:46px;flex-wrap:nowrap}
+    #riftatlas-replay-bar.bar input[type=range]{flex:1 1 auto;min-width:60px}
+
+    /* Box: a narrow stack for the edges, where a bar cannot go. */
+    #riftatlas-replay-bar.box{width:172px;flex-direction:column;align-items:stretch;
+      gap:7px;padding:9px 10px}
+    #riftatlas-replay-bar.box .row{display:flex;align-items:center;gap:5px}
+    #riftatlas-replay-bar.box .row.controls{justify-content:space-between}
+    #riftatlas-replay-bar.box input[type=range]{width:100%}
+    #riftatlas-replay-bar.box .count{text-align:left;min-width:0}
+    #riftatlas-replay-bar.box button{width:28px;height:26px}
+  `;
+  // At document_start there is not always a documentElement yet, so attach the
+  // stylesheet when the document is ready for it rather than assuming.
+  function attachStyle() {
+    const root = document.head ?? document.documentElement;
+    if (root) { root.append(style); return true; }
+    return false;
+  }
+  if (!attachStyle()) {
+    const waiting = setInterval(() => { if (attachStyle()) clearInterval(waiting); }, 20);
+    addEventListener('DOMContentLoaded', () => { clearInterval(waiting); attachStyle(); }, { once: true });
+  }
+
   const bar = document.createElement('div');
   bar.id = 'riftatlas-replay-bar';
-  // Fixed geometry. Nothing in here may resize as the cursor moves: the board
-  // is the thing being read, and a control bar that reflows under the pointer
-  // makes stepping feel unreliable.
-  bar.style.cssText = [
-    'position:fixed', 'left:50%', 'transform:translateX(-50%)', 'bottom:14px',
-    'z-index:2147483647', 'box-sizing:border-box',
-    'width:min(520px, calc(100vw - 32px))', 'height:46px',
-    'display:flex', 'align-items:center', 'gap:6px', 'flex-wrap:nowrap',
-    'padding:0 10px', 'border:1px solid rgba(216,183,110,.55)', 'border-radius:10px',
-    'background:rgba(8,12,18,.94)', 'color:#dbe7f3',
-    'font:12px/1 ui-sans-serif,system-ui,-apple-system,sans-serif',
-    'white-space:nowrap', 'user-select:none',
-    'box-shadow:0 6px 24px rgba(0,0,0,.55)', 'backdrop-filter:blur(4px)',
-  ].join(';');
-
-  const BTN = [
-    'flex:0 0 auto', 'width:30px', 'height:30px', 'padding:0',
-    'display:grid', 'place-items:center',
-    'font:14px/1 ui-sans-serif,system-ui,sans-serif', 'color:inherit',
-    'background:#16202c', 'border:1px solid #24313f', 'border-radius:6px',
-    'cursor:pointer', 'white-space:nowrap', 'overflow:hidden',
-  ].join(';');
 
   const mk = (glyph, title, fn) => {
     const b = document.createElement('button');
@@ -389,19 +443,14 @@ function begin(replay, ARM) {
     b.textContent = glyph;
     b.title = title;
     b.setAttribute('aria-label', title);
-    b.style.cssText = BTN;
-    b.onmouseenter = () => { b.style.borderColor = '#74efff'; };
-    b.onmouseleave = () => { b.style.borderColor = '#24313f'; };
     b.onclick = fn;
     return b;
   };
 
-  // A dot rather than the room code: the room is already shown in the client's
-  // own header, and a variable-length code would change the bar's width.
-  const badge = document.createElement('span');
-  badge.textContent = 'REPLAY';
-  badge.title = `Replaying ${ROOM}`;
-  badge.style.cssText = 'flex:0 0 auto;color:#d8b76e;letter-spacing:.1em;font-weight:700;font-size:10px';
+  const grip = document.createElement('span');
+  grip.className = 'grip';
+  grip.textContent = 'REPLAY';
+  grip.title = `Replaying ${ROOM}. Drag to move; double-click to snap to the next corner.`;
 
   const slider = document.createElement('input');
   slider.type = 'range';
@@ -410,43 +459,119 @@ function begin(replay, ARM) {
   slider.step = '1';
   slider.value = '0';
   slider.title = 'Scrub';
-  slider.style.cssText = 'flex:1 1 auto;min-width:60px;margin:0 2px;accent-color:#d8b76e;cursor:pointer';
   slider.oninput = () => seek(Number(slider.value));   // manual: stops playback
 
-  // Tabular figures and a width reserved for the largest value, so the counter
-  // cannot nudge its neighbours as the numbers grow.
   const counter = document.createElement('span');
-  counter.style.cssText = `flex:0 0 auto;color:#8698ab;font-variant-numeric:tabular-nums;`
-    + `min-width:${DIGITS * 2 + 3}ch;text-align:right`;
+  counter.className = 'count';
 
-  const transport = mk('\u25B6', 'Play (space)', toggle);
+  const first = mk('⏮', 'First (Home)', () => seek(0));
+  const prev = mk('◀', 'Previous step (left arrow)', () => seek(cursor - 1));
+  const transport = mk('▶', 'Play (space)', () => toggle());
+  const next = mk('▶', 'Next step (right arrow)', () => seek(cursor + 1));
+  const last = mk('⏭', 'Last (End)', () => seek(order.length - 1));
+  const close = mk('✕', 'Leave replay mode', () => leaveReplayMode());
+  const move = mk('✥', 'Move to the next corner', () => cyclePreset());
 
-  bar.append(
-    badge,
-    mk('\u23EE', 'First (Home)', () => seek(0)),
-    mk('\u25C0', 'Previous step (left arrow)', () => seek(cursor - 1)),
-    transport,
-    mk('\u25B6', 'Next step (right arrow)', () => seek(cursor + 1)),
-    mk('\u23ED', 'Last (End)', () => seek(order.length - 1)),
-    slider,
-    counter,
-    mk('\u2715', 'Leave replay mode', () => leaveReplayMode()),
-  );
+  /** Rebuild the controls for whichever shape is in use. */
+  function applyLayout() {
+    const layout = placement.preset === 'custom'
+      ? (placement.layout ?? 'bar')
+      : PRESETS[placement.preset].layout;
+    bar.className = layout;
+    bar.replaceChildren();
+
+    if (layout === 'bar') {
+      bar.append(grip, first, prev, transport, next, last, slider, counter, move, close);
+    } else {
+      const head = document.createElement('div');
+      head.className = 'row';
+      head.append(grip, counter);
+      const controls = document.createElement('div');
+      controls.className = 'row controls';
+      controls.append(first, prev, transport, next, last);
+      const track = document.createElement('div');
+      track.className = 'row';
+      track.append(slider);
+      const footer = document.createElement('div');
+      footer.className = 'row controls';
+      footer.append(move, close);
+      bar.append(head, controls, track, footer);
+    }
+    applyPosition();
+  }
+
+  /** Put it where the placement says. */
+  function applyPosition() {
+    const s = bar.style;
+    s.top = s.right = s.bottom = s.left = s.transform = '';
+    if (placement.preset === 'custom') {
+      // Kept in view: a window resized smaller must not strand the controls.
+      const w = bar.offsetWidth || 180;
+      const h = bar.offsetHeight || 120;
+      s.left = `${Math.min(Math.max(8, placement.x ?? 8), Math.max(8, innerWidth - w - 8))}px`;
+      s.top = `${Math.min(Math.max(8, placement.y ?? 8), Math.max(8, innerHeight - h - 8))}px`;
+      return;
+    }
+    if (placement.preset === 'left') { s.left = '14px'; s.top = '50%'; s.transform = 'translateY(-50%)'; }
+    else if (placement.preset === 'bottom-right') { s.right = '14px'; s.bottom = '14px'; }
+    else { s.left = '50%'; s.bottom = '14px'; s.transform = 'translateX(-50%)'; }
+  }
+
+  function cyclePreset() {
+    const at = PRESET_ORDER.indexOf(placement.preset);
+    const nextPreset = PRESET_ORDER[(at + 1) % PRESET_ORDER.length];
+    placement = { preset: nextPreset, layout: PRESETS[nextPreset].layout };
+    savePlacement();
+    applyLayout();
+    move.title = `Move to the next corner (now: ${PRESETS[nextPreset].label})`;
+  }
+
+  // Dragging by the grip, because that is where a hand reaches for it.
+  let dragging = null;
+  grip.addEventListener('pointerdown', (e) => {
+    const box = bar.getBoundingClientRect();
+    dragging = { dx: e.clientX - box.left, dy: e.clientY - box.top, moved: false };
+    grip.setPointerCapture(e.pointerId);
+    bar.classList.add('dragging');
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    dragging.moved = true;
+    placement = {
+      preset: 'custom',
+      layout: bar.classList.contains('box') ? 'box' : 'bar',
+      x: e.clientX - dragging.dx,
+      y: e.clientY - dragging.dy,
+    };
+    applyPosition();
+  });
+  const endDrag = (e) => {
+    if (!dragging) return;
+    grip.releasePointerCapture?.(e.pointerId);
+    bar.classList.remove('dragging');
+    if (dragging.moved) savePlacement();
+    dragging = null;
+  };
+  grip.addEventListener('pointerup', endDrag);
+  grip.addEventListener('pointercancel', endDrag);
+  grip.addEventListener('dblclick', cyclePreset);
+  addEventListener('resize', applyPosition);
 
   /**
    * Three states in one button: play, pause, and - once the match has run out -
    * replay from the start. Every glyph is a single character inside a fixed
-   * 30x30 button, so swapping them cannot change the bar's geometry.
+   * button, so swapping them cannot change anything's size.
    */
   function paintTransport() {
     if (playing) {
-      transport.textContent = '\u23F8';
+      transport.textContent = '⏸';
       transport.title = 'Pause (space)';
     } else if (atEnd()) {
-      transport.textContent = '\u21BB';
+      transport.textContent = '↻';
       transport.title = 'Replay from the start (space)';
     } else {
-      transport.textContent = '\u25B6';
+      transport.textContent = '▶';
       transport.title = 'Play (space)';
     }
     transport.setAttribute('aria-label', transport.title);
@@ -478,7 +603,7 @@ function begin(replay, ARM) {
     else if (e.key === ' ') { e.preventDefault(); toggle(); }
   }, true);
 
-  const mount = () => { document.body.append(bar); paint(); };
+  const mount = () => { document.body.append(bar); applyLayout(); paint(); };
   if (document.body) mount(); else addEventListener('DOMContentLoaded', mount);
 
   /**
