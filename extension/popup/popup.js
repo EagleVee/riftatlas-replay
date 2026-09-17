@@ -245,12 +245,19 @@ refresh();
     li.append(top);
     if (left) li.append(score);
     li.append(meta);
-    if (row.buildError) {
+    const trouble = row.buildError
+      ? `Could not build: ${row.buildError}`
+      : row.stoppedEarly
+        ? `Plays ${row.stoppedEarly.sequence ? `up to action ${row.stoppedEarly.sequence}` : 'partially'}`
+          + ` — ${row.stoppedEarly.reason}`
+        : null;
+    if (trouble) {
       const problem = document.createElement('div');
       problem.className = 'problem';
-      problem.textContent = `Could not build: ${row.buildError}`;
-      problem.title = 'The recording itself is intact. Send a Debug dump — this '
-        + 'is usually something RiftAtlas has added that the replay does not know yet.';
+      problem.textContent = `${trouble}. The recording is intact and will rebuild `
+        + 'itself when the extension updates.';
+      problem.title = 'Usually something RiftAtlas has added that this version does not '
+        + 'know yet. A Debug dump is the useful thing to send.';
       li.append(problem);
     }
     li.append(actions);

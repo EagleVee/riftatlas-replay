@@ -70,6 +70,29 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 /**
+ * Rebuild whatever failed to build, whenever the extension changes.
+ *
+ * A build fails when the reducer meets something RiftAtlas has added since -
+ * and the fix for that arrives as a new version. Asking someone to press
+ * Rebuild would be asking them to run the same code twice; retrying on update
+ * is the moment it can actually succeed. The recordings were never damaged, so
+ * this repairs replays that have been broken for as long as the gap lasted.
+ */
+async function rebuildFailed(why) {
+  const sessions = await all(SESSIONS);
+  const broken = sessions.filter((s) => s.buildError || s.coverageStoppedEarly);
+  if (!broken.length) return;
+  console.info(`[riftatlas-replay] ${why}: rebuilding ${broken.length} replay(s) that failed before`);
+  for (const session of broken) await finalise(session.roomCode, { close: false });
+}
+
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  if (reason === 'update' || reason === 'install') {
+    rebuildFailed(`extension ${reason}`).catch(() => {});
+  }
+});
+
+/**
  * Close a recording: mark it done, then build its replay.
  *
  * Closing and building are separate on purpose. Building can fail - a recording
@@ -94,7 +117,16 @@ async function finalise(recordingId, { close = true } = {}) {
     const replay = await buildReplay(recordingId);
     await put(REPLAYS, { roomCode: recordingId, builtAt: Date.now(), replay });
     const session = await get(SESSIONS, recordingId);
-    if (session?.buildError) { delete session.buildError; await put(SESSIONS, session); }
+    if (session) {
+      const stopped = replay.coverage?.stoppedAt ?? null;
+      const had = session.buildError || session.coverageStoppedEarly;
+      delete session.buildError;
+      // A replay that stopped early is still worth retrying later, for the same
+      // reason a failed one is: the missing piece arrives with a new version.
+      if (stopped) session.coverageStoppedEarly = stopped.reason;
+      else delete session.coverageStoppedEarly;
+      if (had || stopped) await put(SESSIONS, session);
+    }
     pendingFinalise.delete(recordingId);
   } catch (err) {
     // Record why, and show it. A build can fail for a reason worth acting on -
@@ -219,6 +251,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             players: replay?.players ?? null,
             viewerPlayerId: replay?.viewer?.playerId ?? null,
             buildError: s.buildError ?? null,
+            stoppedEarly: replay?.coverage?.stoppedAt ?? null,
           };
         }));
       sendResponse(rows);
