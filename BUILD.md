@@ -107,8 +107,9 @@ every install is the same extension wherever it sits on disk. Its private half
 lives outside the repository in `~/.riftatlas-replay-keys/key.pem` and is only
 needed to pack a `.crx`; losing it costs the pinned id, not the source.
 
-A Chrome Web Store upload must **not** carry `key` — the store owns the
-identity there. Strip it for a store build.
+A Chrome Web Store upload must **not** carry `key` — the store owns the identity
+there. `tools/package.sh --store` strips it and checks the store's own
+requirements; see [`PUBLISHING.md`](PUBLISHING.md).
 
 `dist/` is gitignored. Hand the zip and `INSTALL.md` to a tester.
 

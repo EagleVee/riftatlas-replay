@@ -112,6 +112,7 @@ format and visible in the player.
 | [`docs/open-questions.md`](docs/open-questions.md) | What one capture cannot answer |
 | [`plans/00-index.md`](plans/00-index.md) | Six-phase build plan |
 | [`BUILD.md`](BUILD.md) | Building, testing and packaging from source |
+| [`PUBLISHING.md`](PUBLISHING.md) | Chrome Web Store: visibility, cost, and what the listing needs |
 | [`INSTALL.md`](INSTALL.md) | The guide to hand a tester |
 
 ## Tools and tests
