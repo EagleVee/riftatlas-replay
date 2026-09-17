@@ -361,19 +361,17 @@ function begin(replay, ARM) {
   /**
    * Where the controls sit, and what shape they take.
    *
-   * The bar is wide and low, which suits the strip under the board but nothing
-   * else: at the middle-left, or tucked into the bottom-right beside the chat
-   * that a replay does not have, it would run off the screen. So there are two
-   * shapes. Each preset picks the one that fits its corner, and dragging keeps
-   * whatever shape you were using.
+   * The bar is wide and low, which suits the strip under the board but not the
+   * bottom-right, where a replay leaves the chat panel's space free - a bar
+   * there would run off the screen. So there are two shapes, and each preset
+   * picks the one that fits. Dragging keeps whatever shape you were using.
    */
   const PLACEMENT_KEY = 'riftatlas-replay.placement.v1';
   const PRESETS = {
     bottom: { layout: 'bar', label: 'Bottom' },
-    left: { layout: 'box', label: 'Left' },
     'bottom-right': { layout: 'box', label: 'Bottom right' },
   };
-  const PRESET_ORDER = ['bottom', 'left', 'bottom-right'];
+  const PRESET_ORDER = ['bottom', 'bottom-right'];
 
   function loadPlacement() {
     try {
@@ -462,7 +460,7 @@ function begin(replay, ARM) {
   // whatever just happened in the match, which is the more useful thing to
   // read while stepping through one.
   grip.title = `Replaying ${ROOM}. Drag anywhere that is not a button to move it; `
-    + 'double-click to snap to the next corner.';
+    + 'double-click to snap between bottom centre and bottom right.';
 
   const slider = document.createElement('input');
   slider.type = 'range';
@@ -482,7 +480,7 @@ function begin(replay, ARM) {
   const next = mk('▶', 'Next step (right arrow)', () => seek(cursor + 1));
   const last = mk('⏭', 'Last (End)', () => seek(order.length - 1));
   const close = mk('✕', 'Leave replay mode', () => leaveReplayMode());
-  const move = mk('✥', 'Move to the next corner', () => cyclePreset());
+  const move = mk('✥', 'Move between bottom centre and bottom right', () => cyclePreset());
 
   /** Rebuild the controls for whichever shape is in use. */
   function applyLayout() {
@@ -524,8 +522,7 @@ function begin(replay, ARM) {
       s.top = `${Math.min(Math.max(8, placement.y ?? 8), Math.max(8, innerHeight - h - 8))}px`;
       return;
     }
-    if (placement.preset === 'left') { s.left = '14px'; s.top = '50%'; s.transform = 'translateY(-50%)'; }
-    else if (placement.preset === 'bottom-right') { s.right = '14px'; s.bottom = '14px'; }
+    if (placement.preset === 'bottom-right') { s.right = '14px'; s.bottom = '14px'; }
     else { s.left = '50%'; s.bottom = '14px'; s.transform = 'translateX(-50%)'; }
   }
 
@@ -535,7 +532,7 @@ function begin(replay, ARM) {
     placement = { preset: nextPreset, layout: PRESETS[nextPreset].layout };
     savePlacement();
     applyLayout();
-    move.title = `Move to the next corner (now: ${PRESETS[nextPreset].label})`;
+    move.title = `Move between bottom centre and bottom right (now: ${PRESETS[nextPreset].label})`;
   }
 
   // Anywhere that is not a control is a handle: the label, the counter, the
