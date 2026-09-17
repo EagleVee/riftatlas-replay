@@ -207,6 +207,7 @@ function render() {
     meta.textContent = [when(row.startedAt), row.match?.matchFormat,
       row.match?.outcome?.reason].filter(Boolean).join('  ·  ');
 
+
     watch.onclick = async () => {
       watch.textContent = 'Opening…';
       const res = await send({ type: 'replayMode', roomCode: id });
@@ -243,7 +244,16 @@ refresh();
 
     li.append(top);
     if (left) li.append(score);
-    li.append(meta, actions);
+    li.append(meta);
+    if (row.buildError) {
+      const problem = document.createElement('div');
+      problem.className = 'problem';
+      problem.textContent = `Could not build: ${row.buildError}`;
+      problem.title = 'The recording itself is intact. Send a Debug dump — this '
+        + 'is usually something RiftAtlas has added that the replay does not know yet.';
+      li.append(problem);
+    }
+    li.append(actions);
     list.append(li);
   }
 }

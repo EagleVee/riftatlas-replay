@@ -91,6 +91,7 @@ function begin(replay, ARM) {
           const b = P(op.playerId).board, drop = new Set(op.cardIds);
           b[op.zone] = (b[op.zone] ?? []).filter((c) => !drop.has(c.id)); break;
         }
+        case 'zone_replace': P(op.playerId).board[op.zone] = clone(op.cards); break;
         case 'zone_reorder': {
           const b = P(op.playerId).board;
           const by = new Map((b[op.zone] ?? []).map((c) => [c.id, c]));

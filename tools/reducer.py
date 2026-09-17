@@ -17,7 +17,7 @@ import copy
 OPS = (
     "set_room_fields", "unset_room_fields",
     "set_player_fields", "set_board_fields",
-    "zone_insert", "zone_remove", "zone_reorder", "zone_move",
+    "zone_insert", "zone_remove", "zone_reorder", "zone_move", "zone_replace",
     "patch_card_fields", "unset_card_fields",
     "log_insert", "log_remove",
     "chain_insert", "chain_remove", "chain_replace",
@@ -66,6 +66,10 @@ def apply_operation(state, log, op):
         board = _player(state, op["playerId"])["board"]
         dropped = set(op["cardIds"])
         board[op["zone"]] = [c for c in board.get(op["zone"], []) if c["id"] not in dropped]
+    elif verb == "zone_replace":
+        # The whole zone, as it now stands. Seen first on 2026-09-17; the server
+        # uses it where a move rewrites several cards at once.
+        _player(state, op["playerId"])["board"][op["zone"]] = copy.deepcopy(op["cards"])
     elif verb == "zone_reorder":
         board = _player(state, op["playerId"])["board"]
         by_id = {c["id"]: c for c in board.get(op["zone"], [])}

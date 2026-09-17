@@ -63,6 +63,7 @@ Normative semantics: `tools/reducer.py`.
 | `zone_insert` | `playerId`, `zone`, `index`, `cards` | Splice cards in at `index`. |
 | `zone_remove` | `playerId`, `zone`, `cardIds` | Remove by id. |
 | `zone_reorder` | `playerId`, `zone`, `cardIds` | Reorder to the given id sequence. |
+| `zone_replace` | `playerId`, `zone`, `cards` | Replace the zone's contents wholesale. Seen first on 2026-09-17, in a `move_card` that rewrote several cards at once — a reminder that this list grows. |
 | `zone_move` | `cardId`, `from{playerId,zone}`, `to{playerId,zone,index}`, `card` | Move across zones/players. **`card` carries the post-move object** and may reveal a previously hidden card — prefer it over the locally held one. |
 | `patch_card_fields` | `playerId`, `zone`, `cardId`, `fields` | Merge into one card. |
 | `unset_card_fields` | `playerId`, `zone`, `cardId`, `fields` | Delete card keys. |

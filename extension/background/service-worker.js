@@ -93,9 +93,18 @@ async function finalise(recordingId, { close = true } = {}) {
   try {
     const replay = await buildReplay(recordingId);
     await put(REPLAYS, { roomCode: recordingId, builtAt: Date.now(), replay });
+    const session = await get(SESSIONS, recordingId);
+    if (session?.buildError) { delete session.buildError; await put(SESSIONS, session); }
     pendingFinalise.delete(recordingId);
   } catch (err) {
+    // Record why, and show it. A build can fail for a reason worth acting on -
+    // a patch verb the reducer predates, say - and a console warning nobody
+    // reads made that look like a button that simply does nothing.
     console.warn('[riftatlas-replay] could not build', recordingId, err.message);
+    try {
+      const session = await get(SESSIONS, recordingId);
+      if (session) { session.buildError = String(err?.message ?? err); await put(SESSIONS, session); }
+    } catch { /* the session is gone */ }
   }
 }
 
@@ -209,6 +218,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             match: replay?.match ?? null,
             players: replay?.players ?? null,
             viewerPlayerId: replay?.viewer?.playerId ?? null,
+            buildError: s.buildError ?? null,
           };
         }));
       sendResponse(rows);

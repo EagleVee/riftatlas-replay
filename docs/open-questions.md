@@ -102,6 +102,18 @@ Replay mode is unaffected: it answers the match connection itself and never
 reaches RiftAtlas' servers, so a recycled code cannot make it show the wrong
 match.
 
+## 2f. Protocol drift, observed 2026-09-17
+
+`zone_replace` appeared in a live match — a verb absent from every earlier
+capture. The reducer threw, as designed, but `finalise` caught the throw into a
+console warning, so the owner saw a match with 278 commits, a replay with none,
+and a Rebuild button that appeared to do nothing.
+
+Two lessons, both now fixed. Failing loudly is only useful if somebody hears it:
+a build error is stored on the recording and shown in the popup. And the verb
+list is now asserted against what has actually been seen, so a capture carrying
+something new fails the suite rather than one person's replay.
+
 ## 3. Protocol drift
 
 `setupOrderVersion: 2` and `rewindProtocolVersion` show the server versions its

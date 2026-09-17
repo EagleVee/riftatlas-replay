@@ -11,7 +11,7 @@
 export const OPS = [
   'set_room_fields', 'unset_room_fields',
   'set_player_fields', 'set_board_fields',
-  'zone_insert', 'zone_remove', 'zone_reorder', 'zone_move',
+  'zone_insert', 'zone_remove', 'zone_reorder', 'zone_move', 'zone_replace',
   'patch_card_fields', 'unset_card_fields',
   'log_insert', 'log_remove',
   'chain_insert', 'chain_remove', 'chain_replace',
@@ -72,6 +72,11 @@ export function applyOperation(state, log, op) {
       board[op.zone] = (board[op.zone] ?? []).filter((c) => !dropped.has(c.id));
       break;
     }
+    case 'zone_replace':
+      // The whole zone, as it now stands. Seen first on 2026-09-17; the server
+      // uses it where a move rewrites several cards at once.
+      player(state, op.playerId).board[op.zone] = clone(op.cards);
+      break;
     case 'zone_reorder': {
       const board = player(state, op.playerId).board;
       const byId = new Map((board[op.zone] ?? []).map((c) => [c.id, c]));
