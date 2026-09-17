@@ -93,7 +93,10 @@ grip:
 | Middle left | Box |
 | Bottom right | Box |
 
-Dragging the **REPLAY** grip moves it anywhere and keeps whichever shape it had.
+Dragging moves it anywhere and keeps whichever shape it had. Anything that is
+not a button or the slider is a handle — the label, the count, the padding
+between controls — because aiming for one small word is fiddly, and every part
+that does nothing else may as well move it.
 The choice is remembered in `localStorage` per browser, and a custom position is
 clamped back into view when the window is resized, so a smaller window cannot
 strand the controls off-screen.

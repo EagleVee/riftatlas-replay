@@ -396,14 +396,15 @@ function begin(replay, ARM) {
       font:12px/1 ui-sans-serif,system-ui,-apple-system,sans-serif;
       white-space:nowrap;user-select:none;
       box-shadow:0 6px 24px rgba(0,0,0,.55);backdrop-filter:blur(4px)}
-    #riftatlas-replay-bar.dragging{opacity:.85;cursor:grabbing}
-    #riftatlas-replay-bar .grip{cursor:grab;color:#d8b76e;letter-spacing:.1em;
+    #riftatlas-replay-bar{cursor:grab}
+    #riftatlas-replay-bar.dragging,#riftatlas-replay-bar.dragging *{cursor:grabbing}
+    #riftatlas-replay-bar .grip{color:#d8b76e;letter-spacing:.1em;
       font-weight:700;font-size:10px;flex:0 0 auto}
-    #riftatlas-replay-bar.dragging .grip{cursor:grabbing}
     #riftatlas-replay-bar button{flex:0 0 auto;width:30px;height:30px;padding:0;
       display:grid;place-items:center;font:14px/1 ui-sans-serif,system-ui,sans-serif;
       color:inherit;background:#16202c;border:1px solid #24313f;border-radius:6px;
       cursor:pointer;white-space:nowrap;overflow:hidden}
+    #riftatlas-replay-bar .count{cursor:grab}
     #riftatlas-replay-bar button:hover{border-color:#74efff}
     #riftatlas-replay-bar input[type=range]{accent-color:#d8b76e;cursor:pointer;margin:0}
     #riftatlas-replay-bar .count{color:#8698ab;font-variant-numeric:tabular-nums;
@@ -457,7 +458,11 @@ function begin(replay, ARM) {
   const grip = document.createElement('span');
   grip.className = 'grip';
   grip.textContent = 'REPLAY';
-  grip.title = `Replaying ${ROOM}. Drag to move; double-click to snap to the next corner.`;
+  // The hint lives here, not on the bar: paint() keeps the bar's tooltip for
+  // whatever just happened in the match, which is the more useful thing to
+  // read while stepping through one.
+  grip.title = `Replaying ${ROOM}. Drag anywhere that is not a button to move it; `
+    + 'double-click to snap to the next corner.';
 
   const slider = document.createElement('input');
   slider.type = 'range';
@@ -533,16 +538,20 @@ function begin(replay, ARM) {
     move.title = `Move to the next corner (now: ${PRESETS[nextPreset].label})`;
   }
 
-  // Dragging by the grip, because that is where a hand reaches for it.
+  // Anywhere that is not a control is a handle: the label, the counter, the
+  // padding between buttons. Aiming for one small word is fiddly, and every
+  // part of this thing that does not do something else may as well move it.
   let dragging = null;
-  grip.addEventListener('pointerdown', (e) => {
+  bar.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('button, input')) return;   // a control, not the background
     const box = bar.getBoundingClientRect();
     dragging = { dx: e.clientX - box.left, dy: e.clientY - box.top, moved: false };
-    grip.setPointerCapture(e.pointerId);
+    bar.setPointerCapture(e.pointerId);
     bar.classList.add('dragging');
     e.preventDefault();
   });
-  grip.addEventListener('pointermove', (e) => {
+  bar.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     dragging.moved = true;
     placement = {
@@ -555,14 +564,17 @@ function begin(replay, ARM) {
   });
   const endDrag = (e) => {
     if (!dragging) return;
-    grip.releasePointerCapture?.(e.pointerId);
+    bar.releasePointerCapture?.(e.pointerId);
     bar.classList.remove('dragging');
     if (dragging.moved) savePlacement();
     dragging = null;
   };
-  grip.addEventListener('pointerup', endDrag);
-  grip.addEventListener('pointercancel', endDrag);
-  grip.addEventListener('dblclick', cyclePreset);
+  bar.addEventListener('pointerup', endDrag);
+  bar.addEventListener('pointercancel', endDrag);
+  bar.addEventListener('dblclick', (e) => {
+    if (e.target.closest('button, input')) return;
+    cyclePreset();
+  });
   addEventListener('resize', applyPosition);
 
   /**
