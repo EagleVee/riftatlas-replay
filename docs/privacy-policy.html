@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — RiftAtlas Replay</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    max-width: 44rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem;
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #1b2430; background: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #dbe7f3; background: #0b1017; }
+    h1, h2 { color: #d8b76e; }
+    code { background: #16202c; }
+    th { border-color: #24313f; }
+    td { border-color: #1b2733; }
+  }
+  h1 { font-size: 1.7rem; margin-bottom: .25rem; }
+  h2 { font-size: 1.15rem; margin-top: 2.25rem; }
+  .updated { color: #6b7d90; font-size: .9rem; margin-top: 0; }
+  code { background: #f2f4f7; padding: .1em .35em; border-radius: 3px; font-size: .9em; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #e3e7ec; vertical-align: top; }
+  th { border-bottom-width: 2px; }
+  ul { padding-left: 1.2rem; }
+  .lead { font-size: 1.05rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e3e7ec;
+           color: #6b7d90; font-size: .9rem; }
+</style>
+
+<h1>Privacy Policy — RiftAtlas Replay</h1>
+<p class="updated">Last updated 17 September 2026</p>
+
+<p class="lead">
+  RiftAtlas Replay records your matches on <code>play.riftatlas.com</code> so you
+  can watch them back. Everything it records stays in your own browser. The
+  extension sends nothing anywhere, and there is no server behind it.
+</p>
+
+<h2>What it collects</h2>
+<p>
+  While you are in a match on <code>play.riftatlas.com</code>, the extension
+  reads the game data the site's own server sends to your browser, and writes it
+  to local storage inside the extension. A recording contains:
+</p>
+<ul>
+  <li>the room code, the format, and when the match was played;</li>
+  <li>the display names of both players, and the legends they used;</li>
+  <li>the state of the board and the game's own match log, action by action;</li>
+  <li>your own decklist, and any cards your opponent revealed during play — cards
+      the game kept hidden from you stay hidden in the recording;</li>
+  <li>match chat, where the game recorded any.</li>
+</ul>
+<p>
+  <strong>Login tokens are discarded before anything is written.</strong> The
+  connection carries an authentication token; the extension strips it, along with
+  related keys, so a recording never contains a credential. The frames that carry
+  them are dropped entirely rather than merely scrubbed.
+</p>
+
+<h2>What it does not collect</h2>
+<ul>
+  <li>No browsing history. It only runs on <code>play.riftatlas.com</code> and
+      sees nothing on any other site.</li>
+  <li>No account details, email address, or password.</li>
+  <li>No analytics, telemetry, usage statistics, or crash reporting.</li>
+  <li>No advertising or tracking identifiers of any kind.</li>
+</ul>
+
+<h2>Where it goes</h2>
+<p>
+  Nowhere. The extension contains no code that makes a network request — no
+  fetch, no upload, no beacon, no third-party service. Recordings live in your
+  browser's local storage for this extension and are readable only by it.
+</p>
+<p>
+  The only way data leaves your machine is when you choose to move it:
+</p>
+<ul>
+  <li><strong>Export</strong> saves a match as a file on your disk. What you then
+      do with that file is up to you.</li>
+  <li><strong>Debug dump</strong> saves a diagnostic file, for when you want to
+      report a problem. It contains the same match data described above and no
+      credentials.</li>
+</ul>
+<p>
+  Both are downloads to your own computer. Neither transmits anything.
+</p>
+
+<h2>It observes only</h2>
+<p>
+  The extension watches your connection to the game and writes down what the
+  server says. It never sends, modifies, or delays a game action. There is no
+  code path from it to RiftAtlas' servers at all — the part that records has no
+  ability to send, by construction rather than by policy.
+</p>
+
+<h2>Deleting your data</h2>
+<ul>
+  <li><strong>Delete</strong> on any recording removes it and everything
+      belonging to it, immediately and permanently.</li>
+  <li><strong>Removing the extension</strong> deletes every recording with it.
+      Export anything you want to keep first.</li>
+</ul>
+<p>There is nothing held anywhere else, so there is nothing else to delete.</p>
+
+<h2>Permissions, and why each one exists</h2>
+<table>
+  <tr><th>Permission</th><th>Used for</th></tr>
+  <tr><td><code>storage</code></td>
+      <td>keeping your recordings and settings in your own browser</td></tr>
+  <tr><td><code>downloads</code></td>
+      <td>saving an export or a diagnostic dump to your disk, when you ask</td></tr>
+  <tr><td><code>scripting</code></td>
+      <td>putting a replay into the RiftAtlas tab when you press Watch replay</td></tr>
+  <tr><td><code>tabs</code></td>
+      <td>finding the RiftAtlas tab to put the replay into</td></tr>
+  <tr><td><code>play.riftatlas.com</code></td>
+      <td>the only website the extension runs on</td></tr>
+</table>
+
+<h2>Children</h2>
+<p>
+  The extension is not directed at children and collects nothing beyond the game
+  data described above.
+</p>
+
+<h2>Changes</h2>
+<p>
+  If this policy changes, the date at the top changes with it. A change that
+  affected what is collected or where it goes would also come with an update to
+  the extension, and would be described in that update.
+</p>
+
+<h2>Contact</h2>
+<p>
+  Questions about this policy or about the extension:
+  <a href="mailto:eaglev1999@gmail.com">eaglev1999@gmail.com</a>.
+</p>
+
+<footer>
+  RiftAtlas Replay is an independent project. It is not affiliated with,
+  endorsed by, or connected to RiftAtlas or Riot Games.
+</footer>
+</html>
