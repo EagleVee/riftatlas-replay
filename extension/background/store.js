@@ -102,18 +102,21 @@ export async function activeRecordingFor(roomCode) {
 }
 
 /**
- * Is this a recording, or just the residue of visiting a room?
+ * Is this a recording, or just the residue of being in a room?
  *
- * A bare `room_shell_sync` - which arrives whenever the client looks at a room,
- * including one whose match finished long ago - was enough to create a session.
- * That left empty recordings sitting above the real ones, sharing their room
- * code and holding nothing.
+ * Leaving a finished match is the usual way residue appears: the recording is
+ * closed, and the client's parting frames then start a fresh one that never
+ * catches a thing. It ends up listed above the real match wearing the same room
+ * code.
  *
- * A recording has to have caught something: an anchoring snapshot, or at least
- * one commit.
+ * A recording is only real once it holds a commit. Before that it is either
+ * residue, or a match in the act of starting - told apart by whether it is
+ * still open. A match that has closed without a single commit recorded nothing
+ * worth keeping, whether or not it managed to catch an opening snapshot.
  */
 export function isEmptyRecording(session, commitCount) {
-  return !session?.origin && !commitCount;
+  if (commitCount) return false;
+  return !session?.origin || session.finished === true;
 }
 
 /** Delete every trace of one recording. */
