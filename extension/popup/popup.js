@@ -40,6 +40,45 @@ function tag(text, cls) {
   return el;
 }
 
+/** One side of a scoreline: the player, with their legend beneath. */
+function seatEl(player, side, won) {
+  const el = document.createElement('div');
+  el.className = `seat ${side}${won ? ' winner' : ''}`;
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = player.name ?? player.id;
+  name.title = name.textContent;
+  el.append(name);
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  legend.textContent = player.legend?.name ?? '';
+  legend.title = legend.textContent;
+  el.append(legend);
+  return el;
+}
+
+/**
+ * The score between them, left untinted on purpose.
+ *
+ * The winner is not always the higher score: a concession can end a match at
+ * 5-8 in the loser's favour on points, and highlighting the winning half made
+ * the smaller number look like the bigger one. The result is carried by the
+ * card's edge and the winner's name; the score is just the score.
+ */
+function scoreEl(left, right) {
+  const el = document.createElement('div');
+  el.className = 'tally';
+  const a = document.createElement('span');
+  a.textContent = left?.finalScore ?? '–';
+  const dash = document.createElement('span');
+  dash.className = 'dash';
+  dash.textContent = '–';
+  const b = document.createElement('span');
+  b.textContent = right?.finalScore ?? '–';
+  el.append(a, dash, b);
+  return el;
+}
+
 /** A small secondary action. */
 function small(label, title, onclick, cls = '') {
   const b = document.createElement('button');
@@ -141,21 +180,30 @@ function render() {
       + 'and their match log.';
     top.append(watch);
 
-    // Row 2: everything about the match, on one line.
+    // Row 2: the scoreline. You on the left, opponent on the right, score
+    // between them, with each legend under its player.
+    const seats = [...(row.players ?? [])];
+    const mine = seats.findIndex((p) => p.id === row.viewerPlayerId);
+    if (mine > 0) seats.unshift(seats.splice(mine, 1)[0]);
+    const [left, right] = seats;
+    const winner = row.match?.outcome?.winnerPlayerId ?? null;
+
+    const score = document.createElement('div');
+    score.className = 'score';
+    if (left) {
+      const won = winner && left.id === winner;
+      if (winner) li.classList.add(won ? 'won' : 'lost');
+      score.append(
+        seatEl(left, 'left', won),
+        scoreEl(left, right),
+        right ? seatEl(right, 'right', winner && right.id === winner) : document.createElement('div'),
+      );
+    }
+
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.textContent = [
-      row.players?.map((p) => `${p.name} ${p.finalScore ?? ''}`.trim()).join(' v '),
-      when(row.startedAt),
-      row.match?.matchFormat,
-    ].filter(Boolean).join('  ·  ');
-    meta.title = meta.textContent;
-
-    const legends = document.createElement('div');
-    legends.className = 'legend';
-    legends.textContent = (row.players ?? [])
-      .map((p) => p.legend?.name).filter(Boolean).join('  v  ');
-    legends.title = legends.textContent;
+    meta.textContent = [when(row.startedAt), row.match?.matchFormat,
+      row.match?.outcome?.reason].filter(Boolean).join('  ·  ');
 
     watch.onclick = async () => {
       watch.textContent = 'Opening…';
@@ -191,9 +239,9 @@ refresh();
       small('Delete', 'Delete this recording', () => askDelete(li, code, id), 'danger'),
     );
 
-    li.append(top, meta);
-    if (legends.textContent) li.append(legends);
-    li.append(actions);
+    li.append(top);
+    if (left) li.append(score);
+    li.append(meta, actions);
     list.append(li);
   }
 }

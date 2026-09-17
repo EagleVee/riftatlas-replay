@@ -191,6 +191,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             stale: !!replay && replay.commits.length < recorded,
             match: replay?.match ?? null,
             players: replay?.players ?? null,
+            viewerPlayerId: replay?.viewer?.playerId ?? null,
           };
         }));
       sendResponse(rows);
