@@ -35,13 +35,12 @@ function tag(text, cls) {
   return el;
 }
 
-/** A small square action. Icons carry their meaning in the tooltip. */
-function icon(glyph, title, onclick, cls = '') {
+/** A small secondary action. */
+function small(label, title, onclick, cls = '') {
   const b = document.createElement('button');
-  b.className = `icon ${cls}`.trim();
-  b.textContent = glyph;
+  b.className = `small ${cls}`.trim();
+  b.textContent = label;
   b.title = title;
-  b.setAttribute('aria-label', title);
   b.onclick = onclick;
   return b;
 }
@@ -62,84 +61,78 @@ async function refresh() {
     const code = row.room ?? row.roomCode;         // room code, for people
     const li = document.createElement('li');
 
-    const main = document.createElement('div');
-    main.className = 'main';
-
-    // ---- left: who, when, and the small actions ----
-    const info = document.createElement('div');
-    info.className = 'info';
+    // Row 1: which match, and the thing most visits are for.
+    const top = document.createElement('div');
+    top.className = 'top';
 
     const head = document.createElement('div');
     head.className = 'head';
     const room = document.createElement('span');
     room.className = 'room';
     room.textContent = code;
-    head.append(room, icon('⎘', 'Copy the room code', async (e) => {
+    head.append(room, small('Copy', 'Copy the room code', async (e) => {
       const b = e.currentTarget;
-      try { await navigator.clipboard.writeText(code); b.textContent = '✓'; }
-      catch { b.textContent = '!'; }
-      setTimeout(() => { b.textContent = '⎘'; }, 1200);
+      try { await navigator.clipboard.writeText(code); b.textContent = 'Copied'; }
+      catch { b.textContent = 'failed'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1200);
     }));
     if (!row.finished) head.append(tag('recording', 'live'));
     if (row.partial) head.append(tag('partial', 'partial'));
     if (row.stale) {
       const t = tag(`rebuild — ${row.builtCommits}/${row.recordedCommits}`, 'partial');
       t.title = `The replay covers ${row.builtCommits} of ${row.recordedCommits} recorded actions. `
-        + 'Press rebuild to bring it up to date.';
+        + 'Press Rebuild to bring it up to date.';
       head.append(t);
     }
-    info.append(head);
+    top.append(head);
 
-    const players = document.createElement('div');
-    players.className = 'players';
-    players.textContent = row.players?.map((p) => `${p.name} ${p.finalScore ?? ''}`.trim())
-      .join('   v   ') ?? '';
-    if (players.textContent) info.append(players);
-
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    meta.textContent = [when(row.startedAt), row.match?.matchFormat].filter(Boolean).join('  ·  ');
-    info.append(meta);
-
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-    actions.append(
-      icon('⤓', 'Export this match as a .ratlas.json file. Rebuilds first, '
-        + 'so an export is always up to date.', async (e) => {
-        const b = e.currentTarget;
-        b.textContent = '…';
-        const res = await send({ type: 'export', roomCode: id });
-        b.textContent = res?.ok ? '✓' : '!';
-        if (!res?.ok) meta.textContent = res?.error ?? 'export failed';
-        setTimeout(() => { b.textContent = '⤓'; }, 1500);
-      }),
-      icon('⟳', 'Re-assemble the replay from what was recorded. Not normally '
-        + 'needed — recording is continuous, and Export rebuilds anyway.', async (e) => {
-        const b = e.currentTarget;
-        b.textContent = '…';
-        await send({ type: 'finalise', roomCode: id });
-        refresh();
-      }),
-      icon('✕', 'Delete this recording', () => askDelete(li, code, id), 'danger'),
-    );
-    info.append(actions);
-    main.append(info);
-
-    // ---- right: the thing you actually came for ----
     const watch = document.createElement('button');
     watch.className = 'watch';
     watch.textContent = 'Watch replay';
-    watch.title = 'Play this match back in RiftAtlas’ own board, with card art '
+    watch.title = 'Play this match back in RiftAtlas\u2019 own board, with card art '
       + 'and their match log.';
+    top.append(watch);
+
+    // Row 2: everything about the match, on one line.
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = [
+      row.players?.map((p) => `${p.name} ${p.finalScore ?? ''}`.trim()).join(' v '),
+      when(row.startedAt),
+      row.match?.matchFormat,
+    ].filter(Boolean).join('  ·  ');
+    meta.title = meta.textContent;
+
     watch.onclick = async () => {
       watch.textContent = 'Opening…';
       const res = await send({ type: 'replayMode', roomCode: id });
       watch.textContent = 'Watch replay';
       if (!res?.ok) meta.textContent = res?.error ?? 'could not start the replay';
     };
-    main.append(watch);
 
-    li.append(main);
+    // Row 3: the rest.
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.append(
+      small('Export', 'Save this match as a .ratlas.json file. Rebuilds first, '
+        + 'so an export is always up to date.', async (e) => {
+        const b = e.currentTarget;
+        b.textContent = 'Exporting…';
+        const res = await send({ type: 'export', roomCode: id });
+        b.textContent = res?.ok ? 'Saved' : 'failed';
+        if (!res?.ok) meta.textContent = res?.error ?? 'export failed';
+        setTimeout(() => { b.textContent = 'Export'; }, 1800);
+      }),
+      small('Rebuild', 'Re-assemble the replay from what was recorded. Not normally '
+        + 'needed — recording is continuous, and Export rebuilds anyway.', async (e) => {
+        e.currentTarget.textContent = 'Rebuilding…';
+        await send({ type: 'finalise', roomCode: id });
+        refresh();
+      }),
+      small('Delete', 'Delete this recording', () => askDelete(li, code, id), 'danger'),
+    );
+
+    li.append(top, meta, actions);
     list.append(li);
   }
 }
