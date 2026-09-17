@@ -1,5 +1,5 @@
 :root { color-scheme: dark; }
-body { width: 380px; margin: 0; padding: 10px 12px 12px;
+body { width: 400px; margin: 0; padding: 10px 12px 12px;
   background: #0b1017; color: #dbe7f3;
   font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; }
 header { display: flex; align-items: center; gap: 10px; }
@@ -11,15 +11,42 @@ button:hover { border-color: #74efff; }
 #note { color: #8698ab; font-size: 11.5px; margin: 6px 0 8px; }
 #tools { display: flex; gap: 6px; margin: 0 0 10px; }
 #tools button { font-size: 11.5px; }
+
 ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
-li { border: 1px solid #24313f; border-radius: 5px; padding: 8px; background: #121a24; }
+li { border: 1px solid #24313f; border-radius: 6px; padding: 9px; background: #121a24; }
 li.empty { color: #8698ab; text-align: center; background: none; border-style: dashed; }
+
+/* Left column carries identity and the small actions; the right carries the
+   one thing most visits are for. */
+.main { display: flex; align-items: center; gap: 10px; }
+.info { min-width: 0; flex: 1 1 auto; }
+
 .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.room { color: #d8b76e; font-weight: 600; letter-spacing: .04em; }
-button.copy { font-size: 10.5px; padding: 1px 6px; line-height: 1.4; }
-.sub { color: #8698ab; font-size: 11.5px; margin-top: 2px; }
-.tag { font-size: 10.5px; border: 1px solid #24313f; border-radius: 3px;
-  padding: 0 5px; margin-left: 6px; color: #8698ab; }
+.room { color: #d8b76e; font-weight: 600; letter-spacing: .06em; }
+.players { margin-top: 3px; font-size: 12.5px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.meta { margin-top: 2px; color: #8698ab; font-size: 11px; }
+
+.tag { font-size: 10px; border: 1px solid #24313f; border-radius: 3px;
+  padding: 0 5px; color: #8698ab; }
 .tag.live { color: #74efff; border-color: rgba(116,239,255,.4); }
 .tag.partial { color: #ff9d6b; border-color: rgba(255,157,107,.4); }
-.row { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+
+.actions { display: flex; gap: 5px; margin-top: 7px; }
+button.icon { width: 26px; height: 24px; padding: 0; display: grid; place-items: center;
+  font-size: 13px; line-height: 1; color: #8698ab; }
+button.icon:hover { color: #dbe7f3; }
+button.icon.danger:hover { color: #ff7b7b; border-color: rgba(255,123,123,.55); }
+
+button.watch { flex: 0 0 auto; align-self: stretch; min-width: 104px; padding: 8px 12px;
+  font-weight: 600; color: #0b1017; background: #d8b76e; border-color: #d8b76e;
+  border-radius: 5px; }
+button.watch:hover { background: #ecd190; border-color: #ecd190; }
+
+/* Deleting destroys a recording, so it asks first, in place. */
+.confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 9px; padding-top: 9px; border-top: 1px solid #24313f; font-size: 11.5px; }
+.confirm span { flex: 1 1 140px; color: #ff9d6b; }
+button.danger-solid { color: #0b1017; background: #ff7b7b; border-color: #ff7b7b;
+  font-weight: 600; }
+button.danger-solid:hover { background: #ff9d9d; border-color: #ff9d9d; }

@@ -38,25 +38,18 @@ The RiftAtlas Replay icon appears in your toolbar. Pin it — you'll use it.
 Nothing to do. Play on `play.riftatlas.com` as normal and it records in the
 background. Open the popup afterwards and your match is listed.
 
-For each recording:
+Each recording has one big button — **Watch replay** — which plays it back in
+RiftAtlas' own board, with card art and their match log.
 
-- **Copy** puts the room code on your clipboard.
-- **Build** re-assembles the replay from what was recorded. **You don't normally
-  need it** — recording runs continuously and the replay is built for you when
-  you leave the match, and **Export** rebuilds before saving anyway. It's here
-  for when a replay looks short, or was built by an older version.
-- **Export** saves it as `.ratlas.json`, which you can send to someone.
-- **In RiftAtlas UI** replays it in RiftAtlas' own board (see below).
-- **Open in lobby** types the room code into RiftAtlas and presses Join. This
-  opens the **live** room on their server — the current board, with no history.
-  It is not the replay.
+Under the player names are three small ones:
 
-  Room codes are only five characters, so RiftAtlas reuses them. An old code may
-  now belong to somebody else's match, and joining would drop you into it as a
-  spectator. The extension asks first for anything more than a few hours old.
-  **Replay mode is unaffected** — it answers the connection itself and never
-  reaches their server, so it always shows your match and never someone else's.
-- **Delete** removes it.
+| | |
+|---|---|
+| ⤓ | **Export** — save as `.ratlas.json` to send to someone. Rebuilds first, so an export is always current. |
+| ⟳ | **Rebuild** — re-assemble from the recording. Not normally needed; recording is continuous and Export rebuilds anyway. Use it if a replay looks short. |
+| ✕ | **Delete** — asks first, and cannot be undone. |
+
+⎘ beside the room code copies it.
 
 ## If RiftAtlas says it can't reconnect to your game
 

@@ -275,41 +275,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
-  if (msg?.type === 'prefillLobby') {
-    // Fills RiftAtlas' own room-code box and presses Join. This reaches the
-    // REAL room on their server, not a replay - useful while a room still
-    // exists, and it shows the live board with no history. Replay mode is the
-    // one that plays a match back.
-    (async () => {
-      const [tab] = await chrome.tabs.query({ url: 'https://play.riftatlas.com/*' });
-      if (!tab) return sendResponse({ ok: false, error: 'open play.riftatlas.com first' });
-      await chrome.tabs.update(tab.id, { active: true });
-      const [{ result } = {}] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        args: [msg.roomCode],
-        func: (code) => {
-          const input = [...document.querySelectorAll('input')]
-            .find((i) => /AB12CD/i.test(i.placeholder ?? ''));
-          if (!input) return { ok: false, error: 'no room-code box — are you in the lobby?' };
-          // The box is React-controlled, so assigning .value is ignored; go
-          // through the native setter and announce the change.
-          const proto = Object.getPrototypeOf(input);
-          const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
-            ?? Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-          setter.call(input, code);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          const join = [...document.querySelectorAll('button')]
-            .find((b) => /join\s*\/?\s*spectate/i.test(b.innerText ?? ''));
-          if (!join) return { ok: true, filled: true, pressed: false };
-          setTimeout(() => join.click(), 150);
-          return { ok: true, filled: true, pressed: true };
-        },
-      });
-      sendResponse(result ?? { ok: false, error: 'could not reach the page' });
-    })().catch((e) => sendResponse({ ok: false, error: e.message }));
-    return true;
-  }
-
   if (msg?.type === 'clearRoomState') {
     // Forget whatever room the client thinks it is in. The way out of
     // "Couldn't reconnect to your game" when a replay left its room behind.
