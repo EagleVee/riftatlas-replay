@@ -89,7 +89,9 @@ target, which is what `tools/load-extension.mjs` handles.
 ## Package a release
 
 ```bash
-tools/package.sh              # writes dist/riftatlas-replay-<version>.zip
+tools/release.sh patch capture.har   # bump, test, build both zips
+tools/package.sh                     # or just build, at the current version
+tools/package.sh --store             # the Web Store upload, key stripped
 ```
 
 It refuses to package a manifest that is missing icons, a description, or a

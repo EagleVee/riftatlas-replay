@@ -128,10 +128,41 @@ true by construction rather than by policy.
 
 ## Updating after publication
 
-Bump `version` in `extension/manifest.json`, run `tools/package.sh --store`, and
-upload. Each update is reviewed again. Users get it automatically within a day
-or so, which also means a replay broken by protocol drift repairs itself without
-anyone doing anything — see the retry-on-update behaviour in the service worker.
+Every update is a build and an upload. There is no way around the upload being
+deliberate, and no way around review — even the API submits for review rather
+than skipping it.
+
+```bash
+tools/release.sh patch path/to/capture.har
+```
+
+That bumps the version, runs the suite, and builds both zips: the store one to
+upload, and the tester one for anyone still on an unpacked install. It exists
+because the two easy mistakes — forgetting the version bump, and uploading the
+tester zip with its key still in — are both silent until the store rejects them.
+
+Then upload the `-store` zip on the dashboard and submit. Users get it
+automatically within a day or so of it passing, which is also when a replay
+broken by protocol drift repairs itself: see the retry-on-update behaviour in
+the service worker.
+
+### Automating the upload
+
+The Chrome Web Store API can upload and submit from a script:
+
+```
+POST https://chromewebstore.googleapis.com/upload/v2/publishers/<publisher>/items/<id>:upload
+POST https://chromewebstore.googleapis.com/v2/publishers/<publisher>/items/<id>:publish
+```
+
+It needs an OAuth client and secret from a Google Cloud project, a refresh token,
+your publisher id, and 2-step verification on the account. **Review still
+applies** — the API submits, it does not publish instantly.
+
+Worth setting up if releases become frequent. Until then it saves a drag-and-drop
+on a process that waits days for review anyway.
+
+- [Using the Chrome Web Store API](https://developer.chrome.com/docs/webstore/using-api)
 
 ## What I would not publish yet
 
