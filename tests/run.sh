@@ -27,6 +27,10 @@ echo "== build replay =="
 (cd "$ROOT/tools" && python3 har_to_replay.py "$HAR" "$TMP/replay.ratlas.json")
 
 echo
+echo "== who won =="
+node "$ROOT/tests/outcome.mjs"
+
+echo
 echo "== match-end detector =="
 node "$ROOT/tests/finish-detector.mjs"
 

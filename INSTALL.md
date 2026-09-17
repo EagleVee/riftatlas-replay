@@ -44,7 +44,17 @@ plays it back in RiftAtlas' own board with card art and their match log.
 
 A green edge means you won, a red one that you lost, and a ✓ marks the winner.
 The score itself is left plain, because the winner is not always the higher
-number: a concession can end a match at 5–8 in the loser's favour on points.
+number.
+
+RiftAtlas records leaving a room as a concession, and winners usually leave as
+soon as they have won — so its log credits the win to whoever stayed. When a
+finished match has exactly one player on the winning score (8, or 11 in 2v2),
+that player is shown as the winner instead, with the reason `score`.
+
+Reaching the winning score never *ends* a recording. Scores are manual and can
+be set wrongly, so a match only closes when the room empties, a new one starts,
+the log announces a result, or the connection drops — and the score is only read
+once that has happened.
 
 Under the player names are three small ones:
 
