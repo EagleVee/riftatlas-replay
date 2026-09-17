@@ -139,13 +139,18 @@ RiftAtlas adds things to its game protocol from time to time, and a version of
 this extension that predates one will not know what to do with it. When that
 happens the replay stops at that point and says so.
 
-**The recording is not damaged** — only the replay built from it. Nothing needs
-doing: when the extension next updates, every replay that failed or stopped
-early is rebuilt automatically, and the match comes back in full.
+**The recording is not damaged** — only the replay built from it, and only from
+that point on. Everything before it still plays.
 
-Pressing Rebuild yourself will not help, because it runs the same version that
-could not build it the first time. What does help is a **Debug dump** — that is
-how the missing piece gets added.
+The message says which of two situations you are in:
+
+- *"press Rebuild to try again"* — an ordinary hiccup. It is retried
+  automatically each time you open the popup, so it has usually cleared itself
+  before you read this.
+- *"RiftAtlas has added something this version does not know yet"* — nothing you
+  can do will fix it, because the missing piece has to be written. Send a
+  **Debug dump**. Your recording keeps waiting, and the replay rebuilds itself
+  in full once a version arrives that understands it.
 
 ## If a replay is much shorter than the match
 
