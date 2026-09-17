@@ -57,6 +57,11 @@ async function handleFrame({ data, at }) {
   // one's early sequences overwriting the old one's.
   let session = await activeRecordingFor(room);
   if (!session) {
+    // Only a frame that carries game state may start a recording. Looking at a
+    // room sends a shell sync and nothing else, and a finished room can be
+    // looked at long after the match - which used to create an empty recording
+    // above the real one, with the same code and nothing in it.
+    if (msg.type !== 'authoritative_snapshot' && msg.type !== 'room_shell_sync') return null;
     session = {
       roomCode: recordingId(room, at),   // the store's key: a recording id
       room,                              // the human-facing room code

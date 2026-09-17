@@ -7,7 +7,7 @@
  */
 import { onFrame, looksFinished, everyoneLeft } from './recorder.js';
 import { buildReplay } from './finalise.js';
-import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRecording, commitsFor, roomOf } from './store.js';
+import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRecording, commitsFor, roomOf, isEmptyRecording } from './store.js';
 
 /**
  * Build a data: URL for a download. Chunked, because spreading a large array
@@ -169,7 +169,24 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       for (const c of await all(COMMITS)) {
         counts.set(c.roomCode, (counts.get(c.roomCode) ?? 0) + 1);
       }
-      const rows = await Promise.all(sessions
+      // A session that has caught nothing is not a recording, and is never
+      // listed. Ending a match is the usual way one appears: finalise closes
+      // the recording, then the trailing frames - a shell sync as the client
+      // returns to the room - find no open recording and start an empty one,
+      // which then sits above the real match wearing the same room code.
+      //
+      // They are hidden immediately and deleted once they cannot still be a
+      // match in the act of starting: a shell sync does arrive a beat before
+      // the opening snapshot, and in that beat the two look identical.
+      const SETTLE_MS = 2 * 60 * 1000;
+      const now = Date.now();
+      const live = [];
+      for (const s of sessions) {
+        if (!isEmptyRecording(s, counts.get(s.roomCode))) { live.push(s); continue; }
+        if (now - (s.lastAt ?? 0) > SETTLE_MS) dropRecording(s.roomCode).catch(() => {});
+      }
+
+      const rows = await Promise.all(live
         .sort((a, b) => b.startedAt - a.startedAt)
         .map(async (s) => {
           const replay = built.get(s.roomCode)?.replay ?? null;

@@ -101,6 +101,21 @@ export async function activeRecordingFor(roomCode) {
   return candidates[0] ?? null;
 }
 
+/**
+ * Is this a recording, or just the residue of visiting a room?
+ *
+ * A bare `room_shell_sync` - which arrives whenever the client looks at a room,
+ * including one whose match finished long ago - was enough to create a session.
+ * That left empty recordings sitting above the real ones, sharing their room
+ * code and holding nothing.
+ *
+ * A recording has to have caught something: an anchoring snapshot, or at least
+ * one commit.
+ */
+export function isEmptyRecording(session, commitCount) {
+  return !session?.origin && !commitCount;
+}
+
 /** Delete every trace of one recording. */
 export async function dropRecording(id) {
   const db = await open();

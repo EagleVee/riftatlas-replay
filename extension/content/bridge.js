@@ -67,7 +67,17 @@ async function flush() {
       // The worker is asleep, restarting, or the extension was reloaded. Wait
       // and try the same frame again - dropping it would break the chain.
       stats.retries++;
-      if (!chrome.runtime?.id) { stats.failures++; flushing = false; return; }   // extension is gone
+      if (!chrome.runtime?.id) {
+        // The extension was reloaded or updated, which tears down this content
+        // script's connection to it. Nothing here can recover; the page has to
+        // be reloaded to get a live bridge. Say so plainly, because the
+        // alternative is a match that silently stops recording halfway.
+        stats.failures++;
+        flushing = false;
+        console.warn('[riftatlas-replay] the extension was reloaded — recording has stopped. '
+          + 'Reload this page to start recording again.');
+        return;
+      }
       backoff = Math.min(backoff ? backoff * 2 : 100, MAX_BACKOFF);
       await new Promise((resolve) => setTimeout(resolve, backoff));
     }

@@ -18,6 +18,10 @@ The version currently loaded is shown beside the title. If a fix does not seem
 to have taken effect, check that first — an extension keeps running its old code
 until it is reloaded.
 
+> Reloading or updating the extension while a match is running **stops that
+> recording**: the page's connection to the extension is torn down and only a
+> page reload restores it. Update between matches, not during one.
+
 ## Updating
 
 **Unzip the new version over the old folder**, then press the reload arrow on
