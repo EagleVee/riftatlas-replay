@@ -11,6 +11,23 @@ import { Timeline } from '../shared/reducer.js';
 const FORMAT = 'riftatlas-replay';
 const VERSION = 1;
 
+/**
+ * Points needed to win, by game variant, as the client defines them.
+ *
+ * The threshold is not in the match state - the client derives it from the
+ * variant - so it is mirrored here. The real rule adds a small bonus for
+ * certain battlefield brushes, which is not reproduced: this is only used to
+ * recognise a player who has clearly reached a winning score, so erring low
+ * would misread a match and erring high would simply defer to RiftAtlas.
+ */
+const VICTORY_SCORE = {
+  duel: 8,
+  free_for_all_3: 8,
+  free_for_all_4: 8,
+  teams_2v2: 11,
+};
+const BASE_VICTORY_SCORE = 8;
+
 /** Zones holding placeholder stubs, per player. Empty means full information. */
 function maskedZones(state) {
   const out = {};
@@ -146,6 +163,32 @@ export async function buildReplay(recordingId) {
     break;
   }
 
+  // Reaching the victory score settles a finished match, whatever the log says.
+  //
+  // RiftAtlas records a player leaving the room as a concession, and a winner
+  // usually leaves as soon as they have won - so the log credits the win to the
+  // player who stayed. Both captures of a finished match showed exactly that:
+  // the player on 8 points was logged as the conceder.
+  //
+  // This decides who won. It never decides *that* a match is over: scores are
+  // manual in a simulator and a player can put themselves on 8 by mistake and
+  // correct it. Nothing in the recorder watches the score, and the finalisation
+  // triggers are a new room, everyone leaving, a terminal log line, or the
+  // socket closing - never a number on the track. Reading the score only once a
+  // recording has closed means a mistaken 8 mid-match is simply corrected
+  // before anyone asks who won.
+  //
+  // Only an unambiguous case overrides: exactly one player at or above the
+  // threshold. Anything else keeps RiftAtlas' own ruling.
+  const victoryScore = VICTORY_SCORE[finalState.gameVariant] ?? BASE_VICTORY_SCORE;
+  if (session.finished === true) {
+    const reached = players.filter((p) => (p.finalScore ?? 0) >= victoryScore);
+    if (reached.length === 1 && reached[0].id !== winnerPlayerId) {
+      winnerPlayerId = reached[0].id;
+      reason = 'score';
+    }
+  }
+
   return {
     format: FORMAT,
     version: VERSION,
@@ -160,7 +203,7 @@ export async function buildReplay(recordingId) {
       roomOrigin: shell.roomOrigin ?? null,
       roomMode: finalState.roomMode ?? null,
       setupOrderVersion: finalState.setupOrderVersion ?? null,
-      outcome: { winnerPlayerId, reason },
+      outcome: { winnerPlayerId, reason, victoryScore },
     },
     viewer: {
       role: viewer.role ?? 'player',
