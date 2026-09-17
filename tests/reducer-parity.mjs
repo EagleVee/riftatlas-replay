@@ -7,7 +7,26 @@
  *   node tests/reducer-parity.mjs <frames.jsonl>
  */
 import fs from 'node:fs';
-import { Timeline, SNAPSHOT_ONLY_PLAYER_FIELDS } from '../extension/shared/reducer.js';
+import { Timeline, SNAPSHOT_ONLY_PLAYER_FIELDS, OPS } from '../extension/shared/reducer.js';
+
+/**
+ * Patch verbs observed in real captures. A verb missing from the reducer throws
+ * on purpose, but the failure used to surface only as a console warning: one
+ * match recorded 278 commits, could apply 186, and looked to its owner like a
+ * Rebuild button that did nothing. `zone_replace` was the verb.
+ */
+const SEEN_IN_THE_WILD = [
+  'set_room_fields', 'unset_room_fields', 'set_player_fields', 'set_board_fields',
+  'zone_insert', 'zone_remove', 'zone_reorder', 'zone_move', 'zone_replace',
+  'patch_card_fields', 'unset_card_fields', 'log_insert', 'log_remove',
+  'chain_insert', 'chain_remove', 'chain_replace',
+];
+const missing = SEEN_IN_THE_WILD.filter((verb) => !OPS.includes(verb));
+if (missing.length) {
+  console.log(`FAIL reducer is missing verbs seen in real captures: ${missing.join(', ')}`);
+  process.exit(1);
+}
+console.log(`ok   all ${SEEN_IN_THE_WILD.length} verbs seen in the wild are implemented`);
 
 const framesPath = process.argv[2];
 if (!framesPath) { console.error('usage: reducer-parity.mjs <frames.jsonl>'); process.exit(2); }
