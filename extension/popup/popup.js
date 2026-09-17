@@ -6,6 +6,8 @@ const send = (msg) => chrome.runtime.sendMessage(msg);
 /** Everything the list last received, so filtering never needs a round trip. */
 let allRows = [];
 
+document.getElementById('version').textContent = `v${chrome.runtime.getManifest().version}`;
+
 document.getElementById('open-player').onclick = () => send({ type: 'openPlayer' });
 
 document.getElementById('unstick').onclick = async (e) => {

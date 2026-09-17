@@ -14,6 +14,10 @@ there is no build step, so the code you can read is exactly the code that runs.
 4. Click **Load unpacked** and pick the unzipped folder (the one with
    `manifest.json` in it).
 
+The version currently loaded is shown beside the title. If a fix does not seem
+to have taken effect, check that first — an extension keeps running its old code
+until it is reloaded.
+
 ## Updating
 
 **Unzip the new version over the old folder**, then press the reload arrow on
