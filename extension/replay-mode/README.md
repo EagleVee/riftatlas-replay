@@ -80,18 +80,19 @@ replay's real sequence stays in the control bar, where a viewer reads it.
 ## Where the controls sit
 
 Two shapes, because one does not fit everywhere. **Bar** is wide and low, which
-suits the strip under the board and nothing else; at the middle-left, or in the
-bottom-right beside the chat panel a replay has no use for, it would run off the
-screen. **Box** is a narrow stack for those edges.
+suits the strip under the board; in the bottom-right, where a replay leaves the
+chat panel's space free, it would run off the screen. **Box** is a narrow stack
+for there.
 
-Three places to put it, cycled with the move button or a double-click on the
-grip:
+Two places to put it, swapped with the move button or a double-click:
 
 | Place | Shape |
 |---|---|
 | Bottom centre | Bar |
-| Middle left | Box |
 | Bottom right | Box |
+
+A middle-left position was tried and dropped: it sat over the board rather than
+beside it.
 
 Dragging moves it anywhere and keeps whichever shape it had. Anything that is
 not a button or the slider is a handle — the label, the count, the padding

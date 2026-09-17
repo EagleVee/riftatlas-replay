@@ -98,8 +98,8 @@ DevTools `.har` capture dropped straight onto the page.
 ### Moving the controls
 
 The replay controls start under the board. Drag them anywhere by any part that
-is not a button or the slider, or use the move button (or double-click) to cycle
-through bottom-centre, middle-left and bottom-right. The two edge positions use a
+is not a button or the slider, or use the move button (or double-click) to swap
+between bottom-centre and bottom-right. The bottom-right position uses a
 narrower stacked layout, since a wide bar does not fit there. Wherever you leave
 them is where they will be next time.
 
