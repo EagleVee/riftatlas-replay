@@ -64,6 +64,7 @@ export async function buildReplay(recordingId) {
   const bySequence = [...snapshots].sort((a, b) => a.sequence - b.sequence);
   const unrepaired = [];
   let sequence = session.origin.sequence;
+  let stoppedAt = null;
 
   for (const commit of commits) {
     if (commit.baseSequence !== sequence) {
@@ -73,6 +74,7 @@ export async function buildReplay(recordingId) {
         sequence = repair.sequence;
       }
     }
+    if (stoppedAt) break;
     // Commits below where we now stand belong to the lost stretch; skip them
     // rather than feeding the reducer a base it never reached.
     if (commit.baseSequence !== sequence) {
@@ -84,14 +86,27 @@ export async function buildReplay(recordingId) {
       }
       continue;
     }
-    timeline.ingest({ type: 'authoritative_patch_commit', ...commit });
-    sequence = commit.sequence;
+    try {
+      timeline.ingest({ type: 'authoritative_patch_commit', ...commit });
+      sequence = commit.sequence;
+    } catch (error) {
+      // Something the reducer does not know - a patch verb RiftAtlas has added
+      // since. Keep everything up to here rather than losing the match: a new
+      // verb should cost the rest of a replay, not the whole of it. The
+      // recording is untouched, so the same match builds in full once the
+      // reducer catches up.
+      stoppedAt = { sequence: commit.sequence, reason: String(error?.message ?? error) };
+      break;
+    }
   }
 
   // Snapshots beyond everything we could walk still tell us how the match
   // ended. When a hole has cost the middle of a game, the final board is the
   // most that can be salvaged, and it is worth more than stopping at the hole.
-  for (const later of bySequence) {
+  //
+  // Skipped when the reducer stopped early: stitching the ending onto a replay
+  // that cannot reach it would present a gap as if it were merely a resync.
+  for (const later of stoppedAt ? [] : bySequence) {
     if (later.sequence <= sequence) continue;
     timeline.ingest({ type: 'authoritative_snapshot', ...later });
     const open = unrepaired.at(-1);
@@ -218,6 +233,9 @@ export async function buildReplay(recordingId) {
       recordedCommits: commits.length,
       appliedCommits: timeline.commits.size,
       lastSequence: lastSeq,
+      // Set when the reducer met something it did not understand. The recording
+      // is complete; this replay is not.
+      stoppedAt,
     },
     players,
     shell: session.shell ?? null,

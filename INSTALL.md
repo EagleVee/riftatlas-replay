@@ -133,6 +133,20 @@ It's version 0.1.0 and unpublished. Expect:
   useful to hear about.
 - **Multiplayer and sealed formats are untested.**
 
+## If a replay says it could not build, or stops early
+
+RiftAtlas adds things to its game protocol from time to time, and a version of
+this extension that predates one will not know what to do with it. When that
+happens the replay stops at that point and says so.
+
+**The recording is not damaged** — only the replay built from it. Nothing needs
+doing: when the extension next updates, every replay that failed or stopped
+early is rebuilt automatically, and the match comes back in full.
+
+Pressing Rebuild yourself will not help, because it runs the same version that
+could not build it the first time. What does help is a **Debug dump** — that is
+how the missing piece gets added.
+
 ## If a replay is much shorter than the match
 
 A break in the recording makes everything after it unreplayable, so a replay can
