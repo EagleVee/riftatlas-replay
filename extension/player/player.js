@@ -503,10 +503,7 @@ addEventListener('hashchange', () => {
       && state.index.sequences.includes(want)) go(want);
 });
 
-// Convenience for development: ?src=<relative path> autoloads a replay.
-const src = new URLSearchParams(location.search).get('src');
-if (src) {
-  fetch(src).then((r) => r.json()).then(load).catch((err) => {
-    $('#meta').textContent = `could not load ${src}: ${err.message}`;
-  });
-}
+// There is deliberately no way to load a replay from a URL. A file arrives
+// through the picker or a drop, which keeps the extension free of any outbound
+// request at all - a simpler thing to state, and to verify, than a fetch that
+// happens to be same-origin.
