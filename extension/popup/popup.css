@@ -1,5 +1,7 @@
 :root { color-scheme: dark; }
-body { width: 400px; margin: 0; padding: 10px 12px 12px;
+/* Border-box, or the padding pushes the card past the popup's own width and
+   the primary button gets clipped off the right edge. */
+body { width: 400px; box-sizing: border-box; margin: 0; padding: 10px 12px 12px;
   background: #0b1017; color: #dbe7f3;
   font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; }
 header { display: flex; align-items: center; gap: 10px; }
@@ -12,7 +14,16 @@ button:hover { border-color: #74efff; }
 #tools { display: flex; gap: 6px; margin: 0 0 10px; }
 #tools button { font-size: 11.5px; }
 
-ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+#search { width: 100%; box-sizing: border-box; margin: 0 0 8px; padding: 5px 8px;
+  font: inherit; color: #dbe7f3; background: #0d141c; border: 1px solid #24313f;
+  border-radius: 4px; }
+#search:focus { outline: none; border-color: #74efff; }
+#search::placeholder { color: #6b7d90; }
+#count { margin: 0 0 7px; color: #8698ab; font-size: 11px; }
+
+/* A long history scrolls rather than growing the popup past its limit. */
+ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px;
+  max-height: 440px; overflow-y: auto; }
 li { border: 1px solid #24313f; border-radius: 6px; padding: 9px; background: #121a24; }
 li.empty { color: #8698ab; text-align: center; background: none; border-style: dashed; }
 
@@ -21,6 +32,8 @@ li.empty { color: #8698ab; text-align: center; background: none; border-style: d
 .head { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0;
   flex-wrap: wrap; }
 .room { color: #d8b76e; font-weight: 600; letter-spacing: .06em; }
+.legend { color: #8698ab; font-size: 11px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
 
 /* Players, time and format on one line, clipped rather than wrapped. */
 .meta { margin-top: 5px; color: #9fb0c2; font-size: 11.5px;

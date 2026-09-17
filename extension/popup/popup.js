@@ -1,5 +1,10 @@
 const list = document.getElementById('list');
+const search = document.getElementById('search');
+const count = document.getElementById('count');
 const send = (msg) => chrome.runtime.sendMessage(msg);
+
+/** Everything the list last received, so filtering never needs a round trip. */
+let allRows = [];
 
 document.getElementById('open-player').onclick = () => send({ type: 'openPlayer' });
 
@@ -45,13 +50,56 @@ function small(label, title, onclick, cls = '') {
   return b;
 }
 
+/**
+ * The words a recording can be found by: room code, both players, both legends,
+ * the format, and the date written a few ways so "sep", "16" and "2026" all
+ * work.
+ */
+function haystack(row) {
+  const started = row.startedAt ? new Date(row.startedAt) : null;
+  return [
+    row.room ?? row.roomCode,
+    row.match?.matchFormat,
+    ...(row.players ?? []).flatMap((p) => [p.name, p.legend?.name, p.legend?.cardCode]),
+    started && when(row.startedAt),
+    started && started.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+    started && started.toISOString().slice(0, 10),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+/** Every term must match, so "zed berto" narrows rather than widens. */
+function matches(row, query) {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return true;
+  const hay = haystack(row);
+  return terms.every((t) => hay.includes(t));
+}
+
 async function refresh() {
-  const rows = await send({ type: 'list' });
+  allRows = (await send({ type: 'list' })) ?? [];
+  render();
+}
+
+function render() {
+  const query = search.value;
+  const rows = allRows.filter((r) => matches(r, query));
+
+  search.hidden = allRows.length < 6;   // pointless chrome on a short list
+  count.hidden = !query;
+  count.textContent = `${rows.length} of ${allRows.length} recordings`;
+
   list.replaceChildren();
-  if (!rows?.length) {
+  if (!allRows.length) {
     const li = document.createElement('li');
     li.className = 'empty';
     li.textContent = 'No recordings yet. Open a RiftAtlas match to start one.';
+    list.append(li);
+    return;
+  }
+  if (!rows.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = `Nothing matches “${query.trim()}”.`;
     list.append(li);
     return;
   }
@@ -103,6 +151,12 @@ async function refresh() {
     ].filter(Boolean).join('  ·  ');
     meta.title = meta.textContent;
 
+    const legends = document.createElement('div');
+    legends.className = 'legend';
+    legends.textContent = (row.players ?? [])
+      .map((p) => p.legend?.name).filter(Boolean).join('  v  ');
+    legends.title = legends.textContent;
+
     watch.onclick = async () => {
       watch.textContent = 'Opening…';
       const res = await send({ type: 'replayMode', roomCode: id });
@@ -127,12 +181,19 @@ async function refresh() {
         + 'needed — recording is continuous, and Export rebuilds anyway.', async (e) => {
         e.currentTarget.textContent = 'Rebuilding…';
         await send({ type: 'finalise', roomCode: id });
-        refresh();
+        search.addEventListener('input', render);
+search.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && search.value) { e.preventDefault(); search.value = ''; render(); }
+});
+
+refresh();
       }),
       small('Delete', 'Delete this recording', () => askDelete(li, code, id), 'danger'),
     );
 
-    li.append(top, meta, actions);
+    li.append(top, meta);
+    if (legends.textContent) li.append(legends);
+    li.append(actions);
     list.append(li);
   }
 }
@@ -150,7 +211,12 @@ function askDelete(li, code, id) {
   const yes = document.createElement('button');
   yes.className = 'danger-solid';
   yes.textContent = 'Delete';
-  yes.onclick = async () => { await send({ type: 'delete', roomCode: id }); refresh(); };
+  yes.onclick = async () => { await send({ type: 'delete', roomCode: id }); search.addEventListener('input', render);
+search.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && search.value) { e.preventDefault(); search.value = ''; render(); }
+});
+
+refresh(); };
   const no = document.createElement('button');
   no.textContent = 'Cancel';
   no.onclick = () => bar.remove();
@@ -158,5 +224,10 @@ function askDelete(li, code, id) {
   li.append(bar);
   no.focus();
 }
+
+search.addEventListener('input', render);
+search.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && search.value) { e.preventDefault(); search.value = ''; render(); }
+});
 
 refresh();

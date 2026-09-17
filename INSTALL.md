@@ -49,7 +49,12 @@ Under the player names are three small ones:
 | ⟳ | **Rebuild** — re-assemble from the recording. Not normally needed; recording is continuous and Export rebuilds anyway. Use it if a replay looks short. |
 | ✕ | **Delete** — asks first, and cannot be undone. |
 
-⎘ beside the room code copies it.
+**Copy** beside the room code copies it.
+
+Once you have a few matches, a search box appears. It matches room codes,
+either player, either legend, the format, and the date — so `zed`, `bertoc`,
+`bo3` and `sep` all work, and several terms narrow rather than widen
+(`zed bertoc` finds Zed games against BertoC). Escape clears it.
 
 ## If RiftAtlas says it can't reconnect to your game
 
