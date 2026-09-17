@@ -38,8 +38,13 @@ The RiftAtlas Replay icon appears in your toolbar. Pin it — you'll use it.
 Nothing to do. Play on `play.riftatlas.com` as normal and it records in the
 background. Open the popup afterwards and your match is listed.
 
-Each recording has one big button — **Watch replay** — which plays it back in
-RiftAtlas' own board, with card art and their match log.
+Each recording shows the scoreline — you on the left, your opponent on the
+right, each with their legend beneath — and one button, **Watch replay**, which
+plays it back in RiftAtlas' own board with card art and their match log.
+
+A green edge means you won, a red one that you lost, and a ✓ marks the winner.
+The score itself is left plain, because the winner is not always the higher
+number: a concession can end a match at 5–8 in the loser's favour on points.
 
 Under the player names are three small ones:
 
