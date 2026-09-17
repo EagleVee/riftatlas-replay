@@ -21,6 +21,35 @@ A one-off **$5** developer registration. No recurring fee. Review usually takes
 a few days; an extension asking for `scripting` and `tabs` may take longer,
 because those get looked at properly.
 
+## Trader or non-trader
+
+Registration asks you to declare one, to satisfy EU marketplace rules. It turns
+on commercial purpose, not on whether money changes hands:
+
+- **Trader** — "acting for purposes relating to his trade, business, craft or
+  profession".
+- **Non-trader** — "acting for purposes which are outside of his trade,
+  business, craft or profession".
+
+A free extension for a game you play, with no payments, ads, or connection to
+your work, is a non-trader case.
+
+The cost of getting it wrong in the other direction is concrete: **traders must
+supply a legal name, phone number and address, and that is published at the
+bottom of the listing.** For an individual that means a home address on a public
+page.
+
+Two things would make it a trader declaration: publishing under a company
+account or as part of your job — so use a personal Google account, not a work
+one — or monetising it later, which would mean updating the declaration.
+
+Google states plainly that this is a legal question, that each publisher makes
+their own determination, and that they will not answer specific cases. The
+reading above is the ordinary one for a personal project, not advice.
+
+- [Trader/Non-Trader identification and verification](https://developer.chrome.com/docs/webstore/program-policies/trader-disclosure)
+- [Trader FAQ](https://developer.chrome.com/docs/webstore/program-policies/trader-verification-faq)
+
 ## Visibility: the three options
 
 | | Who can install | Findable |
