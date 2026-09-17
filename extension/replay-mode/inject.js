@@ -417,10 +417,17 @@ function begin(replay, ARM) {
     #riftatlas-replay-bar.box{width:172px;flex-direction:column;align-items:stretch;
       gap:7px;padding:9px 10px}
     #riftatlas-replay-bar.box .row{display:flex;align-items:center;gap:5px}
-    #riftatlas-replay-bar.box .row.controls{justify-content:space-between}
     #riftatlas-replay-bar.box input[type=range]{width:100%}
-    #riftatlas-replay-bar.box .count{text-align:left;min-width:0}
-    #riftatlas-replay-bar.box button{width:28px;height:26px}
+    #riftatlas-replay-bar.box button{height:26px}
+    /* The five transport buttons share the row instead of keeping a fixed
+       width: at 28px each they needed 160px in a 150px row, so the last one
+       was pushed flush against the border while the first kept its margin. */
+    #riftatlas-replay-bar.box .row.controls button{flex:1 1 0;width:auto;min-width:0}
+    /* The count sits between the two footer buttons, which is the only spare
+       room in the box and keeps the header to just the drag handle. */
+    #riftatlas-replay-bar.box .row.footer{justify-content:space-between}
+    #riftatlas-replay-bar.box .row.footer button{flex:0 0 auto;width:28px}
+    #riftatlas-replay-bar.box .count{text-align:center;min-width:0;flex:1 1 auto}
   `;
   // At document_start there is not always a documentElement yet, so attach the
   // stylesheet when the document is ready for it rather than assuming.
@@ -485,7 +492,7 @@ function begin(replay, ARM) {
     } else {
       const head = document.createElement('div');
       head.className = 'row';
-      head.append(grip, counter);
+      head.append(grip);
       const controls = document.createElement('div');
       controls.className = 'row controls';
       controls.append(first, prev, transport, next, last);
@@ -493,8 +500,8 @@ function begin(replay, ARM) {
       track.className = 'row';
       track.append(slider);
       const footer = document.createElement('div');
-      footer.className = 'row controls';
-      footer.append(move, close);
+      footer.className = 'row footer';
+      footer.append(move, counter, close);
       bar.append(head, controls, track, footer);
     }
     applyPosition();
