@@ -163,11 +163,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     all(SESSIONS).then(async (sessions) => {
       const replays = await all(REPLAYS);
       const built = new Map(replays.map((r) => [r.roomCode, r]));
+      // One pass over the commits rather than a range query per recording:
+      // with a long history that difference is the popup feeling instant or not.
+      const counts = new Map();
+      for (const c of await all(COMMITS)) {
+        counts.set(c.roomCode, (counts.get(c.roomCode) ?? 0) + 1);
+      }
       const rows = await Promise.all(sessions
         .sort((a, b) => b.startedAt - a.startedAt)
         .map(async (s) => {
           const replay = built.get(s.roomCode)?.replay ?? null;
-          const recorded = (await commitsFor(s.roomCode)).length;
+          const recorded = counts.get(s.roomCode) ?? 0;
           return {
             roomCode: s.roomCode,               // the recording id, used by actions
             room: s.room ?? roomOf(s.roomCode),  // the code a person recognises

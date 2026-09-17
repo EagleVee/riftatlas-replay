@@ -119,8 +119,18 @@ export async function buildReplay(recordingId) {
   const totals = clock.totals ?? {};
   const selfPlayer = shell.selfPlayer ?? {};
 
+  const legendOf = (player) => {
+    // The legend can leave its own zone during play, so fall back to the
+    // opening board, which always has it.
+    const here = player.board?.legend?.[0];
+    if (here?.name) return { name: here.name, cardCode: here.cardCode ?? null };
+    const atStart = session.origin.snapshot.players
+      ?.find((x) => x.id === player.id)?.board?.legend?.[0];
+    return atStart?.name ? { name: atStart.name, cardCode: atStart.cardCode ?? null } : null;
+  };
+
   const players = (finalState.players ?? []).map((p) => ({
-    id: p.id, seat: p.seat, name: p.name,
+    id: p.id, seat: p.seat, name: p.name, legend: legendOf(p),
     decklistRaw: p.id === selfPlayer.id ? (selfPlayer.decklistRaw ?? null) : null,
     finalScore: p.board?.score ?? null,
     thinkTimeMs: totals[p.id] ?? null,
