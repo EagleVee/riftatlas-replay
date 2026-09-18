@@ -5,7 +5,7 @@
  * Finalisation is a pure function of what is already in IndexedDB, so a worker
  * that was killed mid-match can still produce a correct replay on wake.
  */
-import { SESSIONS, get, commitsFor, extrasFor, roomOf } from './store.js';
+import { SESSIONS, all, get, commitsFor, extrasFor, roomOf } from './store.js';
 import { Timeline } from '../shared/reducer.js';
 
 const FORMAT = 'riftatlas-replay';
@@ -39,6 +39,52 @@ function maskedZones(state) {
     if (zones.length) out[player.id] = zones;
   }
   return out;
+}
+
+/**
+ * Who a later game in the series says won this one.
+ *
+ * A best-of-three game does not always end inside the game. Pressing "Next
+ * game" asks both players to name the winner of the one just played, and the
+ * series moves on once they agree - so a game settled that way ends with no
+ * victory line, no concession, and no winning score. One real game two finished
+ * 4-4 with "EagleV2 ended their turn." as its last word.
+ *
+ * The result is not lost, it is just written somewhere else: each room's shell
+ * carries the running `winsByPlayerId` for the series as it stood when that
+ * game began. Game N's winner is therefore whoever gained a win between game
+ * N's shell and game N+1's. Confirmed against a real series - game one's 8-4
+ * shows up as a win in game two's shell, and the agreed game two shows up in
+ * game three's, which is the only place it appears at all.
+ *
+ * A room's shell never gains its own result, so the final game of a series has
+ * no successor to be judged by. That game has to end inside the game, which is
+ * how a series ends anyway.
+ *
+ * This has no counterpart in tools/har_to_replay.py: a capture holds one game,
+ * and this reads across recordings.
+ */
+export function seriesWinner(before, after) {
+  const b = before?.winsByPlayerId ?? {};
+  const a = after?.winsByPlayerId ?? {};
+  // Exactly one player, up by exactly one. Anything else means the ledger is
+  // not describing a single game, and RiftAtlas' own ruling is the better bet.
+  const ids = new Set([...Object.keys(b), ...Object.keys(a)]);
+  const moved = [...ids].filter((id) => (a[id] ?? 0) !== (b[id] ?? 0));
+  const gained = moved.filter((id) => (a[id] ?? 0) - (b[id] ?? 0) === 1);
+  return moved.length === 1 && gained.length === 1 ? gained[0] : null;
+}
+
+async function seriesVerdict(session) {
+  const { seriesId, gameNumber } = session.shell ?? {};
+  if (!seriesId || !gameNumber) return null;
+
+  const sessions = await all(SESSIONS);
+  const next = sessions.find((s) => s.shell?.seriesId === seriesId
+    && s.shell?.gameNumber === gameNumber + 1);
+  if (!next) return null;
+
+  return seriesWinner(session.shell, next.shell);
 }
 
 export async function buildReplay(recordingId) {
@@ -202,6 +248,14 @@ export async function buildReplay(recordingId) {
       winnerPlayerId = reached[0].id;
       reason = 'score';
     }
+  }
+
+  // What both players agreed on afterwards settles it over anything read from
+  // the board, because it is the result the series itself was scored on.
+  const agreed = await seriesVerdict(session);
+  if (agreed && agreed !== winnerPlayerId) {
+    winnerPlayerId = agreed;
+    reason = 'series';
   }
 
   return {

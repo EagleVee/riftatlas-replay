@@ -131,6 +131,36 @@ The `log_insert` operations inside `commits[]` carry all of them, so no extra
 field is needed; a reader builds the full event list by accumulating across
 sequences. See [`replay-navigation.md`](replay-navigation.md).
 
+**`match.outcome.reason`** says what settled the match, and the four values are
+not equally direct:
+
+| `reason` | Decided by |
+|---|---|
+| `victory` | a victory line in the game's own log |
+| `concession` | a concession line in the game's own log |
+| `score` | one player alone at or above the victory score, when the log named someone else |
+| `series` | the winner both players agreed on when the next game of a series began |
+
+`score` exists because RiftAtlas logs leaving a room as a concession, and a
+winner usually leaves as soon as they have won — so the log routinely credits
+the win to the player who stayed. It decides *who* won, never *that* a match is
+over; scores are manual in a simulator and a mistaken 8 gets corrected long
+before a recording closes.
+
+`series` exists because a best-of-three game need not end inside the game at
+all. Pressing "Next game" asks both players to name the winner of the one just
+played, and the series moves on once they agree — leaving that game with no
+victory line, no concession, and no winning score. Each room's shell carries the
+running `winsByPlayerId` for the series as it stood when that game began, so
+game N's winner is whoever gained a win between game N's shell and game N+1's.
+A room's shell never gains its own result, so the last game of a series has no
+successor to be judged by and must end inside the game — which is how a series
+ends anyway. Being a cross-recording lookup, it has no counterpart in
+`tools/har_to_replay.py`, where one capture is one game.
+
+`winnerPlayerId` is `null` when nothing settled it, which is honest rather than
+broken: a match abandoned mid-play has no winner to name.
+
 **`gaps[]`** must be non-lossy: if the chain broke and no snapshot was captured
 at the far side, emit the gap with `"recovery": "none"` and accept that the
 replay ends there. Do not interpolate.

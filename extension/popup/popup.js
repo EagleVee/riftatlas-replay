@@ -28,6 +28,18 @@ document.getElementById('dump').onclick = async (e) => {
   setTimeout(() => { button.textContent = was; }, 2500);
 };
 
+/**
+ * How the match ended, in words. 'series' is the odd one: a best-of-three game
+ * can be settled by both players naming the winner when the next game starts,
+ * which is a result the game's own log never mentions.
+ */
+const HOW_IT_ENDED = {
+  victory: 'victory',
+  concession: 'concession',
+  score: 'on score',
+  series: 'agreed between games',
+};
+
 function when(ms) {
   if (!ms) return '';
   const d = new Date(ms);
@@ -205,7 +217,8 @@ function render() {
     const meta = document.createElement('div');
     meta.className = 'meta';
     meta.textContent = [when(row.startedAt), row.match?.matchFormat,
-      row.match?.outcome?.reason].filter(Boolean).join('  ·  ');
+      HOW_IT_ENDED[row.match?.outcome?.reason] ?? row.match?.outcome?.reason]
+      .filter(Boolean).join('  ·  ');
 
 
     watch.onclick = async () => {
