@@ -39,6 +39,10 @@ echo "== frames arriving after a recording closes =="
 node "$ROOT/tests/late-frames.mjs"
 
 echo
+echo "== a best-of-three game settled between games =="
+node "$ROOT/tests/series-ledger.mjs"
+
+echo
 echo "== the detector must not fire before the real ending =="
 node --input-type=module -e "
 import fs from 'node:fs';
