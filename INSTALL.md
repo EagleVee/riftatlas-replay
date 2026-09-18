@@ -132,14 +132,21 @@ servers — the recorder has no way to send at all.
 
 ## Known rough edges
 
-It's version 0.1.0 and unpublished. Expect:
+It's version 0.6.0. Expect:
 
 - **Replay mode breaks if RiftAtlas ships a UI change.** The standalone player
   keeps working regardless.
-- **Only tested on duel matches that ended in a concession.** Bo3, and matches
-  ending in a normal win, are unverified — if one of those misbehaves, that's
-  useful to hear about.
-- **Multiplayer and sealed formats are untested.**
+- **Multiplayer and sealed formats are untested.** Duel is what has been played;
+  free-for-all, 2v2, and sealed have never been recorded, so if one of those
+  misbehaves that's useful to hear about.
+- **The last game of a best-of-three can end with no result recorded**, in one
+  specific case: if you settle it with the winner prompt that appears when you
+  press "Next game", rather than in the game itself. Earlier games in the series
+  are fine — their result turns up in the next game's data — but the final game
+  has no next game to carry it.
+
+Duel is well covered now: matches ending on score, on a concession, and a full
+best-of-three series have all been recorded and replayed end to end.
 
 ## If a replay says it could not build, or stops early
 
