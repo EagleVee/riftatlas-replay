@@ -55,7 +55,12 @@ async function handleFrame({ data, at }) {
   // five characters and get reused, so a returning code must not be appended to
   // a finished recording - that would merge two unrelated matches, the new
   // one's early sequences overwriting the old one's.
-  let session = await activeRecordingFor(room);
+  let session = await activeRecordingFor(room, at);
+  // A frame landing on a recording that has just closed reopens it, and the
+  // caller rebuilds so the late arrival is not stranded in a replay built
+  // without it.
+  const wasClosed = session?.finished === true;
+  if (wasClosed) session.finished = false;
   if (!session) {
     // Only a frame that carries game state may start a recording. Looking at a
     // room sends a shell sync and nothing else, and a finished room can be
@@ -137,7 +142,7 @@ async function handleFrame({ data, at }) {
   }
 
   await put(SESSIONS, session);
-  return roomCode;
+  return { id: roomCode, reopened: wasClosed };
 }
 
 /**

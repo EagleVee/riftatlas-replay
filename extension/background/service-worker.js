@@ -180,9 +180,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       // stopped mid-write - which MV3 does freely - the frame was gone with
       // nothing to retry. One real match lost 28 commits that way and replayed
       // as nine moves out of 396.
-      onFrame(msg).then(async (roomCode) => {
+      onFrame(msg).then(async (result) => {
         sendResponse({ ok: true });
-        if (!roomCode) return;
+        if (!result) return;
+        const { id: roomCode, reopened } = result;
+
+        // A late frame reopened a closed recording: close it again, so its
+        // replay includes whatever just arrived.
+        if (reopened) { await finalise(roomCode); return; }
 
         // A new room started: whatever came before it is finished.
         if (currentRoom && currentRoom !== roomCode) {
