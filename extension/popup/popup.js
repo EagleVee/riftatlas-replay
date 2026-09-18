@@ -232,12 +232,7 @@ function render() {
         + 'needed — recording is continuous, and Export rebuilds anyway.', async (e) => {
         e.currentTarget.textContent = 'Rebuilding…';
         await send({ type: 'finalise', roomCode: id });
-        search.addEventListener('input', render);
-search.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && search.value) { e.preventDefault(); search.value = ''; render(); }
-});
-
-refresh();
+        refresh();
       }),
       small('Delete', 'Delete this recording', () => askDelete(li, code, id), 'danger'),
     );
@@ -279,12 +274,7 @@ function askDelete(li, code, id) {
   const yes = document.createElement('button');
   yes.className = 'danger-solid';
   yes.textContent = 'Delete';
-  yes.onclick = async () => { await send({ type: 'delete', roomCode: id }); search.addEventListener('input', render);
-search.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && search.value) { e.preventDefault(); search.value = ''; render(); }
-});
-
-refresh(); };
+  yes.onclick = async () => { await send({ type: 'delete', roomCode: id }); refresh(); };
   const no = document.createElement('button');
   no.textContent = 'Cancel';
   no.onclick = () => bar.remove();

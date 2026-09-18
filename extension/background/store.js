@@ -87,16 +87,32 @@ export function extrasFor(id, kind) {
 }
 
 /**
- * The recording currently being written for a room, if any.
+ * The recording a frame for this room belongs to, if any.
  *
- * A finished recording is never appended to, so a room code coming back later -
- * whether recycled by RiftAtlas or a rematch in a fresh room - starts its own
- * recording rather than being merged into the old one.
+ * An open recording, or one closed within the last couple of minutes. The grace
+ * period matters because a match's last word can arrive after it has been
+ * declared over: in a best-of-three the next game's room opens immediately, the
+ * previous recording is closed on the spot, and the concession that ended it
+ * turns up a moment later. Without the grace that frame has nowhere to go and is
+ * dropped - which is how a real game two ended with no result at all.
+ *
+ * Reusing a room code is safe here: a rematch gets a new code, confirmed across
+ * a best-of-three where all three games had different ones. A code returning
+ * after two minutes is a different match and starts its own recording.
  */
-export async function activeRecordingFor(roomCode) {
+const REOPEN_GRACE_MS = 2 * 60 * 1000;
+
+/** Can a frame arriving now still belong to this recording? */
+export function stillAccepting(session, now) {
+  if (session.finished !== true) return true;
+  return (now - (session.lastAt ?? 0)) < REOPEN_GRACE_MS;
+}
+
+export async function activeRecordingFor(roomCode, now = Date.now()) {
   const sessions = await all(SESSIONS);
   const candidates = sessions
-    .filter((s) => roomOf(s.roomCode) === roomCode && s.finished !== true)
+    .filter((s) => roomOf(s.roomCode) === roomCode)
+    .filter((s) => stillAccepting(s, now))
     .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
   return candidates[0] ?? null;
 }
