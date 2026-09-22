@@ -10,8 +10,14 @@
  * recording and only when exactly one player is there. It must never decide
  * *that* a match is over: scores are manual, and a player can hit 8 by mistake.
  *
+ * The log is scanned with the recorder's own rule, imported rather than
+ * restated. A private copy here is what let the real scanner keep matching
+ * " wins" long after the recorder stopped - and the initiative roll says
+ * "EagleV wins initiative (15 vs 1)".
+ *
  *   node tests/outcome.mjs
  */
+import { isTerminalLogEntry } from '../extension/background/recorder.js';
 const VICTORY_SCORE = { duel: 8, free_for_all_3: 8, free_for_all_4: 8, teams_2v2: 11 };
 const BASE = 8;
 
@@ -19,9 +25,11 @@ const BASE = 8;
 function decide({ variant = 'duel', players, log, finished = true }) {
   let winner = null;
   let reason = null;
-  if (log) {
-    reason = /conceded/.test(log) ? 'concession' : 'victory';
-    winner = players.find((p) => log.includes(`${p.name} wins`))?.name ?? null;
+  for (const text of [].concat(log ?? [])) {
+    if (!isTerminalLogEntry({ text })) continue;
+    reason = /conceded/.test(text) ? 'concession' : 'victory';
+    winner = players.find((p) => text.includes(`${p.name} wins`))?.name ?? null;
+    break;
   }
   const threshold = VICTORY_SCORE[variant] ?? BASE;
   if (finished) {
@@ -56,6 +64,15 @@ const cases = [
   ['a match still running is never decided on score',
     { finished: false, players: [{ name:'A', score:8 }, { name:'B', score:2 }],
       log: null }, { winner:null, reason:null }],
+  ['the initiative roll names no winner',
+    { players: [{ name:'EagleV', score:1 }, { name:'rybi', score:2 }],
+      log: ['EagleV wins initiative (15 vs 1) and decides who plays first.'] },
+    { winner:null, reason:null }],
+  ['a real ending later in the same log still counts',
+    { players: [{ name:'EagleV', score:7 }, { name:'rybi', score:4 }],
+      log: ['EagleV wins initiative (15 vs 1) and decides who plays first.',
+            'rybi conceded. EagleV wins.'] },
+    { winner:'EagleV', reason:'concession' }],
 ];
 
 let failed = 0;

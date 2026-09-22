@@ -43,6 +43,10 @@ echo "== a best-of-three game settled between games =="
 node "$ROOT/tests/series-ledger.mjs"
 
 echo
+echo "== a closing socket ends one match, not all of them =="
+node "$ROOT/tests/socket-close.mjs"
+
+echo
 echo "== the detector must not fire before the real ending =="
 node --input-type=module -e "
 import fs from 'node:fs';

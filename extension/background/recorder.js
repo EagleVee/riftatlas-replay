@@ -42,7 +42,7 @@ export function onFrame(frame) {
   return next;
 }
 
-async function handleFrame({ data, at }) {
+async function handleFrame({ data, at, socketId }) {
   let msg;
   try { msg = JSON.parse(data); } catch { return null; }
   if (!KEEP.has(msg.type)) return null;
@@ -80,6 +80,11 @@ async function handleFrame({ data, at }) {
   }
   const roomCode = session.roomCode;   // every store write is keyed by this
   session.lastAt = at;
+  // Which socket is feeding this recording. A closing socket ends the match it
+  // was carrying and nothing else: RiftAtlas keeps several party sockets open
+  // at once, and a lobby socket closing used to end a match in progress.
+  // Stored rather than held in worker memory, which MV3 discards at will.
+  if (socketId) session.socketId = socketId;
 
   switch (msg.type) {
     case 'authoritative_snapshot':
@@ -167,6 +172,22 @@ export function isTerminalLogEntry(entry) {
   const text = entry.text ?? '';
   if (/initiative/i.test(text)) return false;   // the dice roll is not an ending
   return VICTORY_TEXT.test(text);
+}
+
+/**
+ * Does this socket closing end this recording?
+ *
+ * Only for the recording that socket was feeding. The observer watches every
+ * `/parties/` socket and RiftAtlas keeps several open at once, so treating any
+ * close as the end of every match cut two live games in half in one evening.
+ *
+ * An unidentified socket ends nothing: leaving a recording open costs far less
+ * than ending one that is still being played, and the other end triggers -
+ * everyone leaving, a new room, a victory line - still apply.
+ */
+export function endsWithSocket(session, socketId) {
+  if (!socketId || !session?.socketId) return false;
+  return session.socketId === socketId;
 }
 
 /** Has everyone left the room? Set from the room document as it arrives. */

@@ -253,7 +253,10 @@ function render() {
     li.append(top);
     if (left) li.append(score);
     li.append(meta);
-    const trouble = row.buildError
+    const trouble = row.unanchored
+      ? `Only the final position was captured — the ${row.unanchored.commits} actions `
+        + 'recorded here all came before it, and cannot be replayed'
+      : row.buildError
       ? `Could not build: ${row.buildError}`
       : row.stoppedEarly
         ? `Plays ${row.stoppedEarly.sequence ? `up to action ${row.stoppedEarly.sequence}` : 'partially'}`
@@ -262,7 +265,10 @@ function render() {
     if (trouble) {
       const problem = document.createElement('div');
       problem.className = 'problem';
-      problem.textContent = row.needsNewVersion
+      problem.textContent = row.unanchored
+        ? `${trouble}. This happens when recording starts partway through a match. `
+          + 'Rebuilding will not change it.'
+        : row.needsNewVersion
         ? `${trouble}. RiftAtlas has added something this version does not know yet — `
           + 'send a Debug dump. Your recording is safe, and the replay will rebuild '
           + 'itself once that is fixed.'

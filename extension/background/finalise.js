@@ -6,6 +6,7 @@
  * that was killed mid-match can still produce a correct replay on wake.
  */
 import { SESSIONS, all, get, commitsFor, extrasFor, roomOf } from './store.js';
+import { isTerminalLogEntry } from './recorder.js';
 import { Timeline } from '../shared/reducer.js';
 
 const FORMAT = 'riftatlas-replay';
@@ -87,6 +88,25 @@ async function seriesVerdict(session) {
   return seriesWinner(session.shell, next.shell);
 }
 
+/**
+ * The commits that arrived before the only anchor this recording ever got.
+ *
+ * Null unless *every* commit is below the anchor, which is the case worth
+ * naming: nothing can be replayed at all. A recording with some commits above
+ * its anchor plays from the anchor onwards, and the gap machinery already
+ * describes what it lost.
+ */
+export function unanchoredSpan(originSequence, commits) {
+  if (!commits.length) return null;
+  if (!commits.every((c) => c.sequence <= originSequence)) return null;
+  return {
+    commits: commits.length,
+    from: commits[0].sequence,
+    to: commits.at(-1).sequence,
+    anchor: originSequence,
+  };
+}
+
 export async function buildReplay(recordingId) {
   const session = await get(SESSIONS, recordingId);
   if (!session?.origin) throw new Error(`no anchoring snapshot for ${recordingId}`);
@@ -111,6 +131,19 @@ export async function buildReplay(recordingId) {
   const unrepaired = [];
   let sequence = session.origin.sequence;
   let stoppedAt = null;
+
+  // Commits recorded before the only snapshot that ever arrived.
+  //
+  // A recording started mid-match has no anchor until the server sends one, and
+  // it may not send one until the match ends. Everything caught in between then
+  // sits below the anchor, and a patch cannot be applied to a state that comes
+  // after it - so the replay holds the final board and nothing that led to it,
+  // which in the player is a scrubber that will not move.
+  //
+  // Nothing here can fix that; the states those commits describe were never
+  // captured. Saying so is the whole remedy, because the alternative reads as a
+  // replay that merely needs rebuilding.
+  const unanchored = unanchoredSpan(session.origin.sequence, commits);
 
   for (const commit of commits) {
     if (commit.baseSequence !== sequence) {
@@ -216,9 +249,14 @@ export async function buildReplay(recordingId) {
 
   let winnerPlayerId = null;
   let reason = null;
+  // The same rule the recorder uses to decide a match has ended, rather than a
+  // second, looser one. This scanner had its own ` wins\b` test, which the
+  // initiative roll satisfies - "EagleV wins initiative (15 vs 1)" - so a match
+  // that ended with no result at all was credited to whoever won the dice, at
+  // 1-2 on points. The recorder stopped falling for that; this had not.
   for (const entry of finalLog) {
+    if (!isTerminalLogEntry(entry)) continue;
     const text = entry.text ?? '';
-    if (!/ wins\b/.test(text) && !/conceded/.test(text)) continue;
     reason = /conceded/.test(text) ? 'concession' : 'victory';
     winnerPlayerId = players.find((p) => p.name && text.includes(`${p.name} wins`))?.id ?? null;
     break;
@@ -290,6 +328,9 @@ export async function buildReplay(recordingId) {
       // Set when the reducer met something it did not understand. The recording
       // is complete; this replay is not.
       stoppedAt,
+      // Set when every recorded commit predates the only anchor there is, so
+      // none of them can be replayed. Rebuilding cannot help.
+      unanchored,
     },
     players,
     shell: session.shell ?? null,
