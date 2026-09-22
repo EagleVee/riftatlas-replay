@@ -18,7 +18,8 @@ but the listing does use the RiftAtlas name, which is theirs.
 ## What it costs
 
 A one-off **$5** developer registration. No recurring fee. Review usually takes
-a few days; an extension asking for `scripting` and `tabs` may take longer,
+a few days; an extension asking for `scripting` and a host permission may take
+longer,
 because those get looked at properly.
 
 ## Trader or non-trader
@@ -118,8 +119,7 @@ store build's id from then on. Do this after the first upload, not before.
 |---|---|
 | `storage` | keeps recordings and the user's settings in the browser |
 | `downloads` | exports a replay, or a debug dump, to the user's own disk |
-| `scripting` | injects replay mode into the RiftAtlas tab when the user asks for it |
-| `tabs` | finds the RiftAtlas tab to inject into |
+| `scripting` | finds the RiftAtlas tab and injects replay mode into it, when the user asks |
 | `host_permissions` | one origin, `play.riftatlas.com`, the only site it works on |
 
 Say plainly that the extension observes the game connection and never sends,

@@ -73,7 +73,6 @@ There is nothing held anywhere else, so there is nothing else to delete.
 | saving an export or a diagnostic dump to your disk, when you ask
 | `scripting`
 | putting a replay into the RiftAtlas tab when you press Watch replay
-| `tabs`
 | finding the RiftAtlas tab to put the replay into
 | `play.riftatlas.com`
 | the only website the extension runs on

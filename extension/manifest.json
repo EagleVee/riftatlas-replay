@@ -13,8 +13,7 @@
   "permissions": [
     "storage",
     "downloads",
-    "scripting",
-    "tabs"
+    "scripting"
   ],
   "host_permissions": [
     "https://play.riftatlas.com/*"
