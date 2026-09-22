@@ -126,6 +126,30 @@ Say plainly that the extension observes the game connection and never sends,
 modifies, or delays anything on it. Reviewers care about that, and here it is
 true by construction rather than by policy.
 
+## Patch notes
+
+**The Chrome Web Store has no changelog field.** There is nowhere per-version to
+write what changed, and the item page shows users only a version number and a
+date. Three places actually reach someone:
+
+- **The listing description.** The only one users see. Keep a short
+  `WHAT'S NEW IN <version>` block at the top and trim it to the last two or
+  three releases. Editing the description is a listing change, so it goes out
+  with the upload and through the same review.
+- **[`CHANGELOG.md`](CHANGELOG.md).** The full record, and the source the block
+  is written from. `tools/release.sh` drafts an entry from the commit subjects
+  since the last release, so a version never ships with nothing written down —
+  but a commit subject is a note to yourself, so rewrite it for a player before
+  uploading.
+- **Notes to the reviewer**, in the submission form. Private, never shown to
+  users. Worth using when a release changes permissions or adds something that
+  looks alarming from outside — say why, and it is one less round trip.
+
+An in-extension "what's new" is the other option, opening a page on update via
+`chrome.runtime.onInstalled` with `reason === 'update'`. Not built: this
+extension already opens on a popup showing its version, and a page that opens
+itself is a tax on every user for every release.
+
 ## Updating after publication
 
 Every update is a build and an upload. There is no way around the upload being

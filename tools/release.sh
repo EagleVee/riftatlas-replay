@@ -37,6 +37,28 @@ else
   echo "no capture given, so the suite did not run — pass one to be sure before uploading"
 fi
 
+# Patch notes. The store has no changelog field, so CHANGELOG.md is the record
+# and the source for the listing's "What's new" block - which means forgetting
+# it is silent. Draft the entry from the commits since the last release, so
+# there is always something to edit rather than nothing.
+if ! grep -q "^## $NEW\$" "$ROOT/CHANGELOG.md" 2>/dev/null; then
+  LAST="$(git -C "$ROOT" log --format=%H --grep='^chore: release' -1 || true)"
+  RANGE="${LAST:+$LAST..}HEAD"
+  DRAFT="$(git -C "$ROOT" log --format='- %s' "$RANGE" 2>/dev/null \
+    | grep -v '^- chore: release' | sed 's/^- [a-z]*: /- /' || true)"
+  python3 - "$ROOT/CHANGELOG.md" "$NEW" "${DRAFT:--}" <<'NOTE'
+import sys, pathlib
+path, version, draft = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+text = path.read_text()
+entry = f"## {version}\n\n{draft.strip() or '-'}\n\n"
+marker = "\n## "
+at = text.index(marker) + 1 if marker in text else len(text)
+path.write_text(text[:at] + entry + text[at:])
+NOTE
+  echo "CHANGELOG.md: drafted an entry for $NEW from the commits - edit it before uploading"
+  echo
+fi
+
 echo
 "$ROOT/tools/package.sh" >/dev/null
 "$ROOT/tools/package.sh" --store >/dev/null
@@ -45,3 +67,4 @@ ls -1 "$ROOT/dist/riftatlas-replay-$NEW"*.zip | sed 's|^|  |'
 echo
 echo "next: upload the -store zip at https://chrome.google.com/webstore/devconsole"
 echo "      and hand the other one to anyone on an unpacked install"
+echo "      paste the CHANGELOG.md entry for $NEW into the listing description"
