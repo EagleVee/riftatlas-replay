@@ -5,7 +5,7 @@
  * match; everything it learns is already in IndexedDB by the time the message
  * handler returns, so a restart is invisible.
  */
-import { onFrame, looksFinished, everyoneLeft } from './recorder.js';
+import { onFrame, looksFinished, everyoneLeft, endsWithSocket } from './recorder.js';
 import { buildReplay } from './finalise.js';
 import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRecording, commitsFor, roomOf, isEmptyRecording } from './store.js';
 
@@ -185,17 +185,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         if (!result) return;
         const { id: roomCode, reopened } = result;
 
-        // A late frame reopened a closed recording: close it again, so its
-        // replay includes whatever just arrived.
-        if (reopened) { await finalise(roomCode); return; }
-
-        // A new room started: whatever came before it is finished.
-        if (currentRoom && currentRoom !== roomCode) {
-          const previous = currentRoom;
-          currentRoom = roomCode;
-          await finalise(previous);
-        } else {
-          currentRoom = roomCode;
+        // A frame arriving on a closed recording reopens it, and the room it
+        // belongs to is not the room being played now - so leave `currentRoom`
+        // alone. Whether it is over is decided below, on the evidence, rather
+        // than assumed from the fact that it was closed once already: the
+        // close may have been the mistake.
+        if (!reopened) {
+          // A new room started: whatever came before it is finished.
+          if (currentRoom && currentRoom !== roomCode) {
+            const previous = currentRoom;
+            currentRoom = roomCode;
+            await finalise(previous);
+          } else {
+            currentRoom = roomCode;
+          }
         }
 
         // Everyone has left the room. Steadier than reading the log, and the
@@ -206,8 +209,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         // Last and least: the log looks like an ending. Only a hint - it has
         // been wrong before, and a closing socket rebuilds regardless.
         try {
-          if (looksFinished(JSON.parse(msg.data))) await finalise(roomCode);
+          if (looksFinished(JSON.parse(msg.data))) { await finalise(roomCode); return; }
         } catch { /* already filtered by onFrame */ }
+
+        // Nothing says it has ended. If this frame reopened it, rebuild so the
+        // arrival is not stranded in a replay built without it, and let it run.
+        if (reopened) await finalise(roomCode, { close: false });
       }).catch((error) => {
         // Nothing was stored. Say so, so the bridge sends it again.
         sendResponse({ ok: false, error: String(error?.message ?? error) });
@@ -216,11 +223,24 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     }
 
     if (msg.kind === 'close') {
-      // Rebuild every session, finished or not. An early finalise - the
+      // Only the recording this socket was feeding has ended.
+      //
+      // The observer watches every `/parties/` socket, and RiftAtlas keeps
+      // several open at once - lobby, queue, the match itself. This used to
+      // close *every* recording on any of them closing, which ended live
+      // matches from across the room: two in one evening were cut in half
+      // mid-play, and the half that followed had no snapshot to anchor on, so
+      // it built into a replay that could not move off its final state.
+      //
+      // Everything else is still rebuilt, because an early finalise - the
       // initiative roll once read as a victory - must never be the last word,
-      // or the replay stays frozen wherever the detector misfired.
+      // or the replay stays frozen wherever the detector misfired. An unknown
+      // socket closes nothing: the other end triggers will finish the match,
+      // and leaving a recording open costs far less than ending a live one.
       all(SESSIONS).then((sessions) => {
-        for (const s of sessions) finalise(s.roomCode);
+        for (const s of sessions) {
+          finalise(s.roomCode, { close: endsWithSocket(s, msg.socketId) });
+        }
       });
     }
     return false;
@@ -279,7 +299,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             // A built replay can fall behind its recording - an early finalise
             // once froze one at the dice roll while recording carried on. Say
             // so rather than letting a short replay look like a short match.
-            stale: !!replay && replay.commits.length < recorded,
+            stale: !!replay && replay.commits.length < recorded
+              && !replay.coverage?.unanchored,
+            unanchored: replay?.coverage?.unanchored ?? null,
             match: replay?.match ?? null,
             players: replay?.players ?? null,
             viewerPlayerId: replay?.viewer?.playerId ?? null,

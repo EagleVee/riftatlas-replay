@@ -10,6 +10,7 @@ for what the extension's finaliser must produce.
 """
 import argparse
 import json
+import re
 
 from har_to_jsonl import redact
 from reducer import Timeline
@@ -23,6 +24,28 @@ KEEP = {
     "authoritative_snapshot", "authoritative_patch_commit",
     "room_shell_sync", "chat_sync", "chat_append", "error",
 }
+
+
+CONCESSION_ID = re.compile(r"^log_concession")
+VICTORY_TEXT = re.compile(r"\bwins\.\s*$|\bwins the (?:game|match)\b", re.I)
+
+
+def is_terminal_log_entry(entry):
+    """Does this log line end the match?
+
+    Mirrors isTerminalLogEntry in extension/background/recorder.js. The
+    initiative roll is the trap: "EagleV wins initiative (15 vs 1)" reads as a
+    victory to anything looking for " wins", and crediting the match to whoever
+    won the dice is worse than naming no winner at all.
+    """
+    if not entry:
+        return False
+    if CONCESSION_ID.match(entry.get("id") or ""):
+        return True
+    text = entry.get("text") or ""
+    if re.search(r"initiative", text, re.I):
+        return False
+    return bool(VICTORY_TEXT.search(text))
 
 
 def extract_frames(har_path, url_contains="/parties/match/"):
@@ -144,13 +167,14 @@ def build(frames):
 
     winner, reason = None, None
     for entry in final_log:
+        if not is_terminal_log_entry(entry):
+            continue
         text = entry.get("text", "")
-        if " wins" in text or "conceded" in text:
-            reason = "concession" if "conceded" in text else "victory"
-            for p in players:
-                if p["name"] and p["name"] + " wins" in text:
-                    winner = p["id"]
-            break
+        reason = "concession" if "conceded" in text else "victory"
+        for p in players:
+            if p["name"] and p["name"] + " wins" in text:
+                winner = p["id"]
+        break
 
     started = (shell or {}).get("createdAt")
     return {
