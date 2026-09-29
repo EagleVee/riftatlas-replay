@@ -16,7 +16,7 @@ import copy
 #: Every patch operation verb observed in the protocol.
 OPS = (
     "set_room_fields", "unset_room_fields",
-    "set_player_fields", "set_board_fields",
+    "set_player_fields", "set_board_fields", "unset_board_fields",
     "zone_insert", "zone_remove", "zone_reorder", "zone_move", "zone_replace",
     "patch_card_fields", "unset_card_fields",
     "log_insert", "log_remove",
@@ -57,6 +57,11 @@ def apply_operation(state, log, op):
         _player(state, op["playerId"]).update(op["fields"])
     elif verb == "set_board_fields":
         _player(state, op["playerId"])["board"].update(op["fields"])
+    elif verb == "unset_board_fields":
+        # Seen first on 2026-09-22, clearing recycledDeckBottomCount on a draw.
+        board = _player(state, op["playerId"])["board"]
+        for field in op["fields"]:
+            board.pop(field, None)
 
     elif verb == "zone_insert":
         zone = _zone(state, op["playerId"], op["zone"])
