@@ -10,7 +10,9 @@ for the "What's new" block in the listing description.
   small control appears in the corner of the board during a match. Its eye
   button lists each time your opponent revealed their hand or the top of their
   deck and then hid it again, with every card that was shown — including ones
-  played or drawn before it was hidden — and each card's cost and colour. It
+  played or drawn before it was hidden — and each card's picture, cost and
+  colour. Hover a picture to see it larger. The same cards shown several times
+  in a row are one entry, marked ×2, ×3 and so on. It
   folds down to a single icon you can drag anywhere. Off by default.
 - **Reveals in replays.** The replay control bar has the same eye button. It
   lists what had been revealed and hidden again up to the point you are

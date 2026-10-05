@@ -71,14 +71,17 @@
 
 <h2>Where it goes</h2>
 <p>
-  Nowhere. The extension contains no code that makes a network request — no
-  fetch, no upload, no beacon, no third-party service. Recordings live in your
+  Nowhere. The extension contains no code that sends anything anywhere — no
+  data request, no upload, no beacon, no third-party service. Recordings live in your
   browser's local storage for this extension and are readable only by it.
 </p>
 <p>
   The in-game overlay shows each card's cost and colour. It reads them from the
   card list built into RiftAtlas' own page as the page loads, and downloads
-  nothing to do so.
+  nothing to do so. Its card pictures are the same images RiftAtlas shows for
+  those cards, loaded from RiftAtlas' own image server — usually straight from
+  your browser's cache, since the game displayed them first. Nothing about you
+  or your recordings is sent with them.
 </p>
 <p>
   The only way data leaves your machine is when you choose to move it:

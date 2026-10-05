@@ -20,8 +20,14 @@
  *     `Function.prototype.toString`, which runs none of its code.
  *   - Any failure here is swallowed. The page must never notice this exists.
  *
+ * The same way it picks up the version tag RiftAtlas puts on each card image
+ * (`small-v2/RAD-116.webp?v=68dc142ccf5a1a46`). Asking for an image with the
+ * tag is asking for the very file the board already loaded, so the browser
+ * answers from its cache; without it, the same picture is downloaded again.
+ *
  * Best effort by design. If the bundle changes shape and nothing parses, every
- * card simply falls back to its name and type.
+ * card simply falls back to its name and type, and pictures to an untagged
+ * address.
  */
 (() => {
   if (window.__riftatlasCatalogObserved) return;
@@ -56,7 +62,18 @@
     return out;
   }
 
+  // "RAD-116.webp":"68dc142ccf5a1a46" - one per card image.
+  const REVISION = /"([A-Z0-9]{2,5}-[A-Z0-9]+)\.webp":"([0-9a-f]{8,32})"/g;
+
+  /** code -> image version tag, for every pair in `source`. */
+  function parseRevisions(source) {
+    const out = {};
+    for (const m of source.matchAll(REVISION)) out[m[1]] ??= m[2];
+    return out;
+  }
+
   let found = null;
+  let revisions = null;
   const waiting = [];
   let scheduled = false;
 
@@ -65,7 +82,7 @@
    * text is cheap, but the page's own start-up comes first.
    */
   function consider(entry) {
-    if (found || !Array.isArray(entry)) return;
+    if ((found && revisions) || !Array.isArray(entry)) return;
     waiting.push(entry);
     if (scheduled) return;
     scheduled = true;
@@ -74,29 +91,37 @@
 
   function scan() {
     scheduled = false;
-    while (!found && waiting.length) {
+    let changed = false;
+    while (!(found && revisions) && waiting.length) {
       for (const item of waiting.shift()) {
         if (typeof item !== 'function') continue;
         let source;
         try { source = toSource.call(item); } catch { continue; }
-        if (!source.includes('energyCost:') || !source.includes('domains:[')) continue;
-        const catalog = parseCatalog(source);
-        // A handful of matches is a stray object, not the catalog.
-        if (Object.keys(catalog).length > 100) { found = catalog; break; }
+        // A handful of matches is a stray object, not the real thing.
+        if (!found && source.includes('energyCost:') && source.includes('domains:[')) {
+          const catalog = parseCatalog(source);
+          if (Object.keys(catalog).length > 100) { found = catalog; changed = true; }
+        }
+        if (!revisions && source.includes('.webp":"')) {
+          const tags = parseRevisions(source);
+          if (Object.keys(tags).length > 100) { revisions = tags; changed = true; }
+        }
       }
     }
-    waiting.length = 0;
-    if (found) announce();
+    if (found && revisions) waiting.length = 0;
+    if (changed) announce();
   }
 
   function announce() {
-    try { window.postMessage({ source: SOURCE, catalog: found }, window.location.origin); } catch { /* going away */ }
+    try {
+      window.postMessage({ source: SOURCE, catalog: found ?? {}, revisions: revisions ?? {} }, window.location.origin);
+    } catch { /* going away */ }
   }
 
   // The overlay may start listening after the catalog went past; it can ask.
   window.addEventListener('message', (event) => {
     if (event.source !== window || event.data?.source !== SOURCE || event.data.ask !== true) return;
-    if (found) announce();
+    if (found || revisions) announce();
   });
 
   /** Watch the runtime's `push`, passing every call straight through. */

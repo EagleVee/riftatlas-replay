@@ -41,6 +41,7 @@
     panel: false,             // the reveals list is open
     position: null,           // centre of the icon, in viewport px; null = default corner
     catalog: new Map(),
+    revisions: new Map(),     // card code -> the version tag on its image
   };
 
   // ── Watching the match ───────────────────────────────────────────────────
@@ -56,8 +57,9 @@
     const msg = event.data;
     if (msg?.source === CATALOG && msg.catalog && typeof msg.catalog === 'object') {
       state.catalog = new Map(Object.entries(msg.catalog));
+      state.revisions = new Map(Object.entries(msg.revisions ?? {}));
       render();
-      replayPanel?.update(replayEvents, state.catalog);
+      replayPanel?.update(replayEvents, state.catalog, state.revisions);
       return;
     }
     if (!msg || msg.source !== TAG) return;
@@ -106,8 +108,10 @@
     } catch { /* the worker is waking up; the next frame asks again */ }
   }
 
-  const markSeen = () => { for (const e of state.events) state.seenIds.add(e.id); };
-  const unseen = () => state.events.filter((e) => !state.seenIds.has(e.id)).length;
+  // Counted by entry, so the same cards shown again do not ask to be looked at.
+  const entries = () => globalThis.riftatlasRevealPanel.group(state.events);
+  const markSeen = () => { for (const e of entries()) state.seenIds.add(e.id); };
+  const unseen = () => entries().filter((e) => !state.seenIds.has(e.id)).length;
 
   // In case the catalog went past before this script was listening.
   window.postMessage({ source: CATALOG, ask: true }, window.location.origin);
@@ -223,7 +227,7 @@
     frame.append(bar);
 
     if (state.expanded && state.panel) {
-      reveals.update(state.events, state.catalog);
+      reveals.update(state.events, state.catalog, state.revisions);
       frame.append(reveals.element);
     }
     root.append(frame);
@@ -329,7 +333,7 @@
       replayHost.append(replayPanel.element);
     }
     replayEvents = Array.isArray(msg.events) ? msg.events : [];
-    replayPanel.update(replayEvents, state.catalog);
+    replayPanel.update(replayEvents, state.catalog, state.revisions);
     if (!replayHost.isConnected) document.body.append(replayHost);
 
     // Above the bar when it sits low, below it when it sits high, lined up

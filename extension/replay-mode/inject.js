@@ -525,8 +525,11 @@ function begin(replay, ARM) {
   let posted = null;
   function paintReveals() {
     const shown = available();
-    eyeBadge.textContent = String(shown.length);
-    eyeBadge.hidden = shown.length === 0;
+    // One per entry the panel lists: the same cards shown again back to back
+    // are one entry there (see shared/reveal-panel.js).
+    const entries = shown.filter((e, i) => i === 0 || !e.signature || e.signature !== shown[i - 1].signature).length;
+    eyeBadge.textContent = String(entries);
+    eyeBadge.hidden = entries === 0;
     eye.classList.toggle('on', revealsOpen);
     eye.setAttribute('aria-pressed', String(revealsOpen));
     const box = bar.getBoundingClientRect();

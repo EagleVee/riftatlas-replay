@@ -20,6 +20,20 @@
   };
   const NEUTRAL = '#6b7d90';
 
+  /**
+   * Card art, at the address RiftAtlas' own client uses for cards in hand and
+   * on the board. The board drew these cards when they were revealed, so the
+   * browser usually has them already. Only the small size is ever used here;
+   * the larger preview is the same image, drawn bigger.
+   */
+  const ART = 'https://assets.riftatlas-workers.com/riftbound/cards/small-v2/';
+  const CARD_CODE = /^[A-Z0-9]{2,5}-[A-Z0-9]+$/;
+  const artFor = (code, tag) => {
+    if (!code || !CARD_CODE.test(code)) return null;
+    // The client's own version tag makes this the exact file it loaded.
+    return tag ? `${ART}${code}.webp?v=${encodeURIComponent(tag)}` : `${ART}${code}.webp`;
+  };
+
   const EYE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   const BACK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
   const CLOSE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -38,6 +52,31 @@
   };
 
   const titleCase = (s) => (s ? s[0].toUpperCase() + s.slice(1) : '');
+
+  /**
+   * Back-to-back reveals of the same cards, as one entry shown `count` times.
+   *
+   * `events` is newest first. "Back to back" means nothing else was revealed in
+   * between, by anyone. A run keeps its oldest reveal's id, so it stays the same
+   * entry while later repeats join it; everything shown comes from the newest.
+   */
+  function group(events) {
+    const runs = [];
+    for (const e of events) {
+      const run = runs.at(-1);
+      if (run && e.signature && run.signature === e.signature) {
+        run.count++;
+        run.id = e.id;
+        run.firstTurn = e.turn;
+        continue;
+      }
+      runs.push({ ...e, count: 1, firstTurn: e.turn, latest: e });
+    }
+    return runs;
+  }
+
+  const turns = (g) => (g.turn == null ? null
+    : g.firstTurn != null && g.firstTurn !== g.turn ? `Turns ${g.firstTurn}–${g.turn}` : `Turn ${g.turn}`);
   const whose = (e) => `${e.playerName || 'Opponent'}’s ${e.kind === 'hand' ? 'hand' : 'top deck'}`;
 
   /**
@@ -50,19 +89,26 @@
     const root = element.attachShadow({ mode: 'closed' });
     const style = el('style');
     style.textContent = CSS;
-    root.append(style);
+    // One enlarged copy of whichever thumbnail is hovered, outside the panel
+    // so its scrolling cannot clip it.
+    const preview = el('img', 'preview');
+    preview.alt = '';
+    preview.hidden = true;
+    root.append(style, preview);
 
-    let events = [];
+    let events = [];   // grouped
     let catalog = new Map();
+    let revisions = new Map();
     let selected = null;
     let drawn = null;
 
     function render() {
       // Redrawing what is already there would reset the scroll under the reader.
-      const key = JSON.stringify([selected, catalog.size, events.map((e) => e.id)]);
+      const key = JSON.stringify([selected, catalog.size, revisions.size, events.map((e) => `${e.id}x${e.count}`)]);
       if (key === drawn) return;
       drawn = key;
-      for (const node of [...root.childNodes]) if (node !== style) node.remove();
+      preview.hidden = true;
+      for (const node of [...root.childNodes]) if (node !== style && node !== preview) node.remove();
       const box = el('section', 'panel');
       const event = events.find((e) => e.id === selected);
       if (event) detail(box, event); else list(box);
@@ -75,17 +121,20 @@
       box.append(head);
       if (!events.length) { box.append(el('p', 'empty', emptyText)); return; }
 
+
       const ul = el('ul', 'events');
       for (const e of events) {
         const li = el('li');
         const button = el('button', 'event');
         button.type = 'button';
         const meta = el('span', 'meta', [
-          e.turn != null ? `Turn ${e.turn}` : null,
+          turns(e),
           `${e.cards.length} card${e.cards.length === 1 ? '' : 's'}`,
         ].filter(Boolean).join(' · '));
         const names = el('span', 'names', e.cards.map((c) => c.name).join(', '));
-        button.append(el('span', 'what', whose(e)), meta, names);
+        const what = el('span', 'what', whose(e));
+        if (e.count > 1) what.append(times(e.count));
+        button.append(what, meta, names);
         button.onclick = () => { selected = e.id; render(); };
         li.append(button);
         ul.append(li);
@@ -101,16 +150,23 @@
       back.setAttribute('aria-label', back.title);
       back.append(svg(BACK));
       back.onclick = () => { selected = null; render(); };
-      head.append(back, el('h2', null, whose(event)), closeButton());
+      const title = el('h2', null, whose(event));
+      if (event.count > 1) title.append(times(event.count));
+      head.append(back, title, closeButton());
       box.append(head);
 
       const sub = el('div', 'sub');
-      if (event.turn != null) sub.append(el('span', null, `Turn ${event.turn}`));
+      const when = [turns(event), event.count > 1 ? `shown ${event.count} times in a row` : null]
+        .filter(Boolean).join(' · ');
+      if (when) sub.append(el('span', null, when));
       if (onJump) {
         const jump = el('button', 'jump', 'Show on board');
         jump.type = 'button';
-        jump.title = 'Move the replay to when these cards were showing';
-        jump.onclick = () => onJump(event);
+        jump.title = event.count > 1
+          ? 'Move the replay to the last time these cards were showing'
+          : 'Move the replay to when these cards were showing';
+        // The newest showing; the entry keeps its own id so it stays open.
+        jump.onclick = () => onJump({ ...event.latest, id: event.id });
         sub.append(jump);
       }
       if (sub.childNodes.length) box.append(sub);
@@ -123,6 +179,26 @@
         box.append(el('h3', null, 'Revealed later, before it was hidden'));
         box.append(cardList(later));
       }
+    }
+
+    /** The hovered thumbnail, bigger, beside the panel on whichever side has room. */
+    function showPreview(art) {
+      if (!art.complete || !art.naturalWidth) return;
+      const W = 220;
+      const H = Math.round(W * (art.naturalHeight / art.naturalWidth));
+      const row = art.getBoundingClientRect();
+      const panelBox = root.querySelector('.panel')?.getBoundingClientRect() ?? row;
+      const left = panelBox.left - W - 10 >= 8 ? panelBox.left - W - 10 : panelBox.right + 10;
+      const top = Math.min(Math.max(8, row.top + row.height / 2 - H / 2), window.innerHeight - H - 8);
+      preview.src = art.src;
+      Object.assign(preview.style, { left: `${left}px`, top: `${top}px`, width: `${W}px`, height: `${H}px` });
+      preview.hidden = false;
+    }
+
+    function times(n) {
+      const tag = el('span', 'times', `×${n}`);
+      tag.title = `Shown ${n} times in a row`;
+      return tag;
     }
 
     function closeButton() {
@@ -146,6 +222,24 @@
           ? `linear-gradient(${colours[0]} 50%, ${colours[1]} 50%)`
           : (colours[0] ?? NEUTRAL);
         li.append(stripe);
+
+        const src = artFor(card.cardCode, revisions.get(card.cardCode));
+        if (src) {
+          const frame = el('span', 'art');
+          const art = el('img');
+          art.alt = '';
+          art.loading = 'lazy';
+          art.decoding = 'async';
+          art.src = src;
+          // No picture is better than a broken one; the row reads without it.
+          art.onerror = () => { frame.remove(); li.classList.remove('zoom'); };
+          // The whole row previews the card, not just the thumbnail.
+          li.classList.add('zoom');
+          li.onmouseenter = () => showPreview(art);
+          li.onmouseleave = () => { preview.hidden = true; };
+          frame.append(art);
+          li.append(frame);
+        }
 
         if (info) {
           const cost = el('span', 'cost');
@@ -172,9 +266,10 @@
     return {
       element,
       /** Show these reveals, keeping the open one open while it still exists. */
-      update(nextEvents, nextCatalog = catalog) {
-        events = nextEvents ?? [];
+      update(nextEvents, nextCatalog = catalog, nextRevisions = revisions) {
+        events = group(nextEvents ?? []);
         catalog = nextCatalog ?? new Map();
+        revisions = nextRevisions ?? new Map();
         if (selected && !events.some((e) => e.id === selected)) selected = null;
         render();
       },
@@ -211,11 +306,25 @@
       background: #121a24; border: 1px solid #24313f; border-radius: 6px; }
     .event:hover { border-color: #74efff; }
     .what { font-weight: 600; }
+    .times { margin-left: 6px; padding: 0 5px; border-radius: 3px; font-size: 10.5px; font-weight: 700;
+      color: #0b1017; background: #d8b76e; vertical-align: 1px; }
     .meta { color: #7d8fa2; font-size: 11px; }
     .names { color: #9fb0c2; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card { display: flex; align-items: center; gap: 9px; padding: 6px 9px 6px 0; background: #121a24;
       border: 1px solid #24313f; border-radius: 6px; overflow: hidden; }
     .stripe { align-self: stretch; width: 4px; flex: 0 0 auto; }
+    /* A square from the top of the card: the artwork and its name banner, which
+       ends about 64% of the way down. A full-width square would reach 72% and
+       catch the rules text, so the card is drawn 12% wider than the square and
+       centred, which makes the square end at the banner. */
+    .art { position: relative; width: 36px; height: 36px; flex: 0 0 auto; border-radius: 4px;
+      overflow: hidden; background: #0d141c; }
+    .art img { position: absolute; top: 0; left: -6%; width: 112%; height: auto; }
+    .card.zoom { cursor: zoom-in; }
+    .card.zoom:hover { border-color: #33465a; }
+    .preview { position: fixed; z-index: 1; border-radius: 10px; pointer-events: none;
+      box-shadow: 0 12px 34px rgba(0,0,0,.65); background: #0d141c; }
+    .preview[hidden] { display: none; }
     .cost { display: flex; align-items: center; gap: 3px; flex: 0 0 auto; min-width: 46px; }
     .energy { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
       background: #dbe7f3; color: #0b1017; font-weight: 700; font-size: 12px;
@@ -226,5 +335,5 @@
     .type { color: #7d8fa2; font-size: 11px; }
   `;
 
-  globalThis.riftatlasRevealPanel = { create, EYE };
+  globalThis.riftatlasRevealPanel = { create, group, EYE };
 })();

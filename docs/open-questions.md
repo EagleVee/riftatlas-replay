@@ -20,6 +20,11 @@ tiles and is useful without art.
 The catalog is the more valuable half — bundling it gives the player real card
 data with no network access.
 
+**Decided 2026-10-05 for the reveals panel only:** it shows `small-v2` thumbnails,
+inside RiftAtlas' own page, at the same addresses the client uses for cards in
+hand — so they are usually already cached, and nothing is bundled. The
+standalone player still renders text tiles, and still makes no requests.
+
 ## 2. Spectator masking — decides whether full-information replays exist
 
 `viewer.role` and `spectator_roster_sync` exist, so spectators are a first-class

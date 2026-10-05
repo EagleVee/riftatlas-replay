@@ -97,7 +97,13 @@ export function extractReveals({ origin, commits, snapshots = [], viewerPlayerId
           }
         } else if (session) {
           open.delete(key);
-          closed.push({ ...session, closedSequence: sequence, cards: [...session.cards.values()] });
+          const shown = [...session.cards.values()];
+          closed.push({
+            ...session, closedSequence: sequence, cards: shown,
+            // The same cards shown again by the same player read as one entry
+            // shown several times; this is what "the same" means.
+            signature: `${key}:${shown.map((c) => c.id).sort().join(',')}`,
+          });
         }
       }
     }

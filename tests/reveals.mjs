@@ -186,6 +186,27 @@ check('a spectator sees both players’ reveals', watched.length === 2);
     extractReveals({ origin: seen, commits: playsOut, viewerPlayerId: null }).length === 0);
 }
 
+// The same cards shown again back to back are one entry, shown N times.
+{
+  const ctx = {};
+  ctx.globalThis = ctx;
+  vm.runInNewContext(fs.readFileSync(new URL('../extension/shared/reveal-panel.js', import.meta.url), 'utf8'), ctx);
+  const { group } = ctx.riftatlasRevealPanel;
+  const ev = (id, signature, turn = 13) => ({ id, signature, turn, cards: [] });
+  // Newest first, as extractReveals returns them.
+  const runs = group([ev('e7', 'hand:x:a,b'), ev('e6', 'deck:x:p'), ev('e5', 'deck:x:p', 13),
+    ev('e4', 'deck:x:p', 12), ev('e3', 'hand:x:a,b'), ev('e2', 'deck:x:p'), ev('e1', 'hand:x:a,b')]);
+  check('back-to-back repeats merge, others do not',
+    runs.map((r) => `${r.count}`).join(',') === '1,3,1,1,1', runs.map((r) => r.count).join(','));
+  const merged = runs[1];
+  check('a merged entry keeps its oldest id, so it stays the same entry as it grows', merged.id === 'e4');
+  check('a merged entry shows the newest reveal and spans its turns',
+    merged.latest.id === 'e6' && merged.firstTurn === 12 && merged.turn === 13);
+
+  const real = extractReveals({ origin, commits, viewerPlayerId: ME });
+  check('every closed reveal carries a signature', real.every((e) => typeof e.signature === 'string'));
+}
+
 // Holes in the chain: a snapshot past the hole lets the reveal carry on, and
 // with none the rest of the match is simply unknown.
 {
@@ -270,6 +291,13 @@ check('a spectator sees both players’ reveals', watched.length === 2);
   check('catalog reads two domains and a missing power cost',
     parsed['VEN-191']?.domains.join() === 'Fury,Chaos' && parsed['VEN-191']?.powerCost === 0);
   check('an entry without a cost is skipped', !('OGN-999' in parsed));
+
+  // The image version tags, from the module that holds them.
+  const tags = Array.from({ length: 120 }, (_, i) => `"TST-${i}.webp":"${(i + 4096).toString(16).padStart(16, 'a')}"`).join(',');
+  const tagModule = new Function('e', `const N=Object.freeze({${tags},"RAD-116.webp":"68dc142ccf5a1a46"});return e;`);
+  const both = run([[1, tagModule], 'runtime', [2, bigModule]]).posted.at(-1);
+  check('image version tags are read alongside the catalog',
+    both?.revisions?.['RAD-116'] === '68dc142ccf5a1a46' && !!both?.catalog?.['TST-0'], JSON.stringify(both?.revisions?.['RAD-116']));
 
   const none = run(['runtime', [1, otherModule]]);
   check('no catalog, no message, nothing broken',

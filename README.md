@@ -28,7 +28,7 @@ Works in Chrome and other Chromium browsers (Edge, Brave, Arc).
 - **Remember what you were shown.** Switch on the in-game overlay in the popup,
   and a small eye button in the corner of the board lists every time your
   opponent revealed their hand or the top of their deck and then hid it again —
-  every card shown, with its cost and colour. It folds down to one icon you can
+  every card shown, with its picture, cost and colour. It folds down to one icon you can
   drag out of the way. Replays have the same eye button on their control bar,
   listing what had been shown up to that point, with a jump to each moment.
 - **Share a match.** Export a `.ratlas.json` file and send it to a friend or coach;
