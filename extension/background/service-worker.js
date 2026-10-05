@@ -7,7 +7,8 @@
  */
 import { onFrame, looksFinished, everyoneLeft, endsWithSocket } from './recorder.js';
 import { buildReplay } from './finalise.js';
-import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRecording, commitsFor, roomOf, isEmptyRecording } from './store.js';
+import { SESSIONS, COMMITS, EXTRAS, REPLAYS, all, get, put, dropRecording, commitsFor, extrasFor, roomOf, isEmptyRecording, activeRecordingFor } from './store.js';
+import { extractReveals, revealsFromReplay } from '../shared/reveals.js';
 
 /**
  * Build a data: URL for a download. Chunked, because spreading a large array
@@ -66,7 +67,7 @@ async function unregisterArmingScripts() {
 // Never carry an arming registration across a browser restart.
 chrome.runtime.onStartup.addListener(() => {
   unregisterArmingScripts();
-  chrome.storage.session.remove('pendingReplay').catch(() => {});
+  chrome.storage.session.remove(['pendingReplay', 'pendingReveals']).catch(() => {});
 });
 
 /**
@@ -315,6 +316,26 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === 'reveals') {
+    // The in-game overlay asking what the opponent has shown and hidden again
+    // in the match being played. Read from the recording rather than from the
+    // page, so a reload mid-match forgets nothing. Reducing a whole match takes
+    // a few milliseconds, which is cheap enough to do on every ask.
+    (async () => {
+      const session = msg.room ? await activeRecordingFor(msg.room) : null;
+      if (!session?.origin) return sendResponse({ ok: true, events: [] });
+      const viewer = session.viewer ?? session.shell?.viewer ?? {};
+      const events = extractReveals({
+        origin: session.origin,
+        commits: await commitsFor(session.roomCode),
+        snapshots: await extrasFor(session.roomCode, 'snapshot'),
+        viewerPlayerId: viewer.playerId ?? null,
+      });
+      sendResponse({ ok: true, events });
+    })().catch((e) => sendResponse({ ok: false, error: e.message }));
+    return true;
+  }
+
   if (msg?.type === 'export') {
     (async () => {
       // Rebuild first, always. A replay built earlier in the match can be
@@ -358,7 +379,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       // two seconds into load. So park the replay, register the arming scripts
       // at document_start, and reload the tab - arming after the fact loses the
       // race and replay mode rightly refuses to displace a real socket.
-      await chrome.storage.session.set({ pendingReplay: row.replay });
+      // The reveals travel with it: inject.js runs in the page's world, where
+      // the reducer's module cannot be loaded, so they are worked out here.
+      let reveals = [];
+      try { reveals = revealsFromReplay(row.replay); } catch { /* the replay still plays */ }
+      await chrome.storage.session.set({ pendingReplay: row.replay, pendingReveals: reveals });
       await registerArmingScripts();
       await chrome.tabs.update(tab.id, { active: true, url: 'https://play.riftatlas.com/game' });
       sendResponse({ ok: true, roomCode: msg.roomCode });

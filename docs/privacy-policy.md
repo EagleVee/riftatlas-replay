@@ -1,5 +1,5 @@
 # Privacy Policy — RiftAtlas Replay
-*Last updated 17 September 2026*
+*Last updated 5 October 2026*
 
 RiftAtlas Replay records your matches on `play.riftatlas.com` so you
 can watch them back. Everything it records stays in your own browser. The
@@ -36,6 +36,10 @@ sees nothing on any other site.
 Nowhere. The extension contains no code that makes a network request — no
 fetch, no upload, no beacon, no third-party service. Recordings live in your
 browser's local storage for this extension and are readable only by it.
+
+The in-game overlay shows each card's cost and colour. It reads them from the
+card list built into RiftAtlas' own page as the page loads, and downloads
+nothing to do so.
 
 The only way data leaves your machine is when you choose to move it:
 

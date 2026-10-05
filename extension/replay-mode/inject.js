@@ -38,7 +38,7 @@
       if (event.source !== window) return;
       if (event.data?.source !== 'riftatlas-replay-arm' || !event.data.replay) return;
       window.removeEventListener('message', onArm);
-      begin(event.data.replay, {});
+      begin(event.data.replay, { reveals: event.data.reveals });
     };
     window.addEventListener('message', onArm);
     // Tell arm.js we are listening, in case it ran first.
@@ -404,6 +404,13 @@ function begin(replay, ARM) {
       color:inherit;background:#16202c;border:1px solid #24313f;border-radius:6px;
       cursor:pointer;white-space:nowrap;overflow:hidden}
     #riftatlas-replay-bar .count{cursor:grab}
+    #riftatlas-replay-bar button.eye{position:relative;overflow:visible}
+    #riftatlas-replay-bar button.eye.on{border-color:#d8b76e;color:#d8b76e}
+    #riftatlas-replay-bar .eye .badge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;
+      padding:0 4px;border-radius:8px;background:#74efff;color:#0b1017;font-size:10px;font-weight:700;
+      line-height:16px;text-align:center;box-sizing:border-box}
+    #riftatlas-replay-bar .eye .badge[hidden]{display:none}
+    #riftatlas-replay-bar.box .row.head{justify-content:space-between}
     #riftatlas-replay-bar button:hover{border-color:#74efff}
     #riftatlas-replay-bar input[type=range]{accent-color:#d8b76e;cursor:pointer;margin:0}
     #riftatlas-replay-bar .count{color:#8698ab;font-variant-numeric:tabular-nums;
@@ -481,6 +488,74 @@ function begin(replay, ARM) {
   const next = mk('▶', 'Next step (right arrow)', () => seek(cursor + 1));
   const last = mk('⏭', 'Last (End)', () => seek(order.length - 1));
   const close = mk('✕', 'Leave replay mode', () => leaveReplayMode());
+
+  // ---------------------------------------------------------------- reveals
+  //
+  // The same list the in-game overlay shows, worked out by the service worker
+  // when the replay was armed. Only reveals already hidden again by the point
+  // on the scrubber are listed, so stepping back takes them away again and the
+  // list never runs ahead of the board.
+  //
+  // The panel itself is drawn by content/overlay.js, which is on every
+  // RiftAtlas page already: this world cannot load the shared panel a second
+  // time, so it says what to show and where, and the overlay answers with a
+  // jump or a close.
+  const REVEALS = Array.isArray(ARM.reveals) ? ARM.reveals : [];
+  const TO_PANEL = 'riftatlas-replay-reveals';
+  const FROM_PANEL = 'riftatlas-replay-reveals-panel';
+  const EYE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  let revealsOpen = false;
+  let pinned = null;   // a reveal jumped to, kept listed while the board shows it
+
+  const closeReveals = () => { revealsOpen = false; pinned = null; paintReveals(); };
+  const eye = mk('', 'Cards the opponent revealed, then hid again', () => {
+    if (revealsOpen) closeReveals(); else { revealsOpen = true; paintReveals(); }
+  });
+  eye.classList.add('eye');
+  eye.innerHTML = EYE;   // static, ours
+  const eyeBadge = document.createElement('span');
+  eyeBadge.className = 'badge';
+  eye.append(eyeBadge);
+
+  const available = () => {
+    const seq = order[cursor];
+    return REVEALS.filter((e) => e.closedSequence <= seq || e.id === pinned);
+  };
+
+  let posted = null;
+  function paintReveals() {
+    const shown = available();
+    eyeBadge.textContent = String(shown.length);
+    eyeBadge.hidden = shown.length === 0;
+    eye.classList.toggle('on', revealsOpen);
+    eye.setAttribute('aria-pressed', String(revealsOpen));
+    const box = bar.getBoundingClientRect();
+    const message = {
+      source: TO_PANEL, open: revealsOpen, events: revealsOpen ? shown : [],
+      anchor: { top: box.top, bottom: box.bottom, left: box.left, right: box.right },
+    };
+    // Every step repaints; only tell the overlay when something it shows moved.
+    const key = JSON.stringify([message.open, message.events.map((e) => e.id), revealsOpen && message.anchor]);
+    if (key === posted) return;
+    posted = key;
+    window.postMessage(message, window.location.origin);
+  }
+
+  addEventListener('message', (e) => {
+    if (e.source !== window || e.data?.source !== FROM_PANEL) return;
+    if (e.data.kind === 'closed') closeReveals();
+    else if (e.data.kind === 'jump') {
+      pinned = e.data.id ?? null;
+      // The first state at or after the reveal opened: the cards on the board.
+      const at = order.findIndex((q) => q >= e.data.sequence);
+      if (at >= 0) seek(at);
+    }
+  });
+
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && revealsOpen) closeReveals();
+  });
+  addEventListener('resize', () => paintReveals());
   const move = mk('✥', 'Move between bottom centre and bottom right', () => cyclePreset());
 
   /** Rebuild the controls for whichever shape is in use. */
@@ -492,11 +567,11 @@ function begin(replay, ARM) {
     bar.replaceChildren();
 
     if (layout === 'bar') {
-      bar.append(grip, first, prev, transport, next, last, slider, counter, move, close);
+      bar.append(grip, first, prev, transport, next, last, slider, counter, eye, move, close);
     } else {
       const head = document.createElement('div');
-      head.className = 'row';
-      head.append(grip);
+      head.className = 'row head';
+      head.append(grip, eye);
       const controls = document.createElement('div');
       controls.className = 'row controls';
       controls.append(first, prev, transport, next, last);
@@ -509,6 +584,7 @@ function begin(replay, ARM) {
       bar.append(head, controls, track, footer);
     }
     applyPosition();
+    paintReveals();
   }
 
   /** Put it where the placement says. */
@@ -559,6 +635,7 @@ function begin(replay, ARM) {
       y: e.clientY - dragging.dy,
     };
     applyPosition();
+    paintReveals();
   });
   const endDrag = (e) => {
     if (!dragging) return;
@@ -603,6 +680,7 @@ function begin(replay, ARM) {
     // The client already narrates the match in its own log panel, so the text
     // lives in a tooltip rather than in the layout.
     bar.title = log[0]?.text ?? `Sequence ${seq}`;
+    paintReveals();
   }
 
   addEventListener('keydown', (e) => {
@@ -709,21 +787,6 @@ function begin(replay, ARM) {
   });
 
   enterRoom();
-
-  addEventListener('keydown', (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    // The client has a chat box and its own shortcuts; never take keys from a
-    // field someone is typing in.
-    const el = e.target;
-    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
-        || el instanceof HTMLSelectElement || el?.isContentEditable) return;
-
-    if (e.key === 'ArrowRight') { e.preventDefault(); seek(cursor + 1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(cursor - 1); }
-    else if (e.key === 'Home') { e.preventDefault(); seek(0); }
-    else if (e.key === 'End') { e.preventDefault(); seek(order.length - 1); }
-    else if (e.key === ' ') { e.preventDefault(); toggle(); }
-  }, true);
 
   console.log(`[riftatlas-replay] replay mode armed for ${ROOM}: ${order.length} states`);
 }

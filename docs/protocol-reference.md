@@ -116,6 +116,13 @@ Phases seen: `battlefield_pick` → `initiative_roll` → `first_player_choice` 
 
 The last three are optional.
 
+`revealedToOpponent: true` marks a hidden-zone card the owner is currently
+showing their opponent. Seen first in October 2026, where it replaced the
+board-level `handRevealToOpponent` flag for hand reveals and also arrived with
+`set_card_revealed_to_opponent`, which reveals a single card in hand. Hiding the
+card again swaps it back to a placeholder stub. Older captures carry only the
+board flag, so a reader must accept either.
+
 A masked card is a **stub object in the same position**, not a bare string:
 
 ```json

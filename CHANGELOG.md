@@ -4,6 +4,20 @@ What changed in each released version, in the words a player would use. The
 Chrome Web Store has no changelog field, so this is the record, and the source
 for the "What's new" block in the listing description.
 
+## Unreleased
+
+- **In-game overlay.** Switch on *Enable In-Game Overlay* in the popup and a
+  small control appears in the corner of the board during a match. Its eye
+  button lists each time your opponent revealed their hand or the top of their
+  deck and then hid it again, with every card that was shown — including ones
+  played or drawn before it was hidden — and each card's cost and colour. It
+  folds down to a single icon you can drag anywhere. Off by default.
+- **Reveals in replays.** The replay control bar has the same eye button. It
+  lists what had been revealed and hidden again up to the point you are
+  watching, and *Show on board* jumps to the moment the cards were showing.
+- The arrow keys in a replay move one step again. Each press was being handled
+  twice, so it skipped every other step.
+
 ## 0.6.2
 
 - Removed the `tabs` permission. Nothing needed it, and it read as access to

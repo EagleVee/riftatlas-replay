@@ -15,16 +15,18 @@
  * that sits armed on every page load.
  */
 const KEY = 'pendingReplay';
+const REVEALS = 'pendingReveals';
 
-chrome.storage.session.get(KEY).then((stored) => {
+chrome.storage.session.get([KEY, REVEALS]).then((stored) => {
   const pending = stored?.[KEY];
   if (!pending) return;
+  const reveals = stored?.[REVEALS] ?? [];
   // Consume it: one arming per request.
-  chrome.storage.session.remove(KEY);
+  chrome.storage.session.remove([KEY, REVEALS]);
   chrome.runtime.sendMessage({ type: 'replayModeArmed' }).catch(() => {});
 
   const hand = () => window.postMessage(
-    { source: 'riftatlas-replay-arm', replay: pending }, window.location.origin);
+    { source: 'riftatlas-replay-arm', replay: pending, reveals }, window.location.origin);
 
   // Both scripts run at document_start and the order is not guaranteed, so
   // answer inject.js's ready call, and also offer it straight away in case it

@@ -11,6 +11,20 @@ header button { margin-left: auto; }
 button { font: inherit; color: inherit; background: #121a24; border: 1px solid #24313f;
   border-radius: 4px; padding: 3px 8px; cursor: pointer; }
 button:hover { border-color: #74efff; }
+/* The overlay switch. A real checkbox underneath, drawn as a switch. */
+#overlay { display: flex; align-items: center; gap: 8px; margin: 9px 0 0; padding: 7px 9px;
+  border: 1px solid #24313f; border-radius: 6px; background: #121a24; cursor: pointer;
+  font-size: 12.5px; }
+#overlay:hover { border-color: #33465a; }
+#overlay input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+#overlay .track { position: relative; flex: 0 0 auto; width: 30px; height: 17px;
+  border-radius: 9px; background: #24313f; transition: background .15s; }
+#overlay .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px;
+  height: 13px; border-radius: 50%; background: #8698ab; transition: transform .15s, background .15s; }
+#overlay input:checked + .track { background: rgba(116,239,255,.35); }
+#overlay input:checked + .track::after { transform: translateX(13px); background: #74efff; }
+#overlay input:focus-visible + .track { outline: 2px solid #74efff; outline-offset: 2px; }
+
 #note { color: #8698ab; font-size: 11.5px; margin: 6px 0 8px; }
 #tools { display: flex; gap: 6px; margin: 0 0 10px; }
 #tools button { font-size: 11.5px; }

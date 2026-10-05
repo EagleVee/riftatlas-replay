@@ -13,8 +13,10 @@ and the resulting replay loaded and navigated.
 manifest.json        MV3
 main-world/
   socket-observer.js wraps window.WebSocket in the page's world; read-only
+  card-catalog.js    reads card cost and colour from the page's own code as it loads
 content/
   bridge.js          forwards observed frames to the service worker
+  overlay.js         in-game overlay (off by default): reveals, then hidden
 background/
   service-worker.js  message routing; holds no match state
   recorder.js        filter, redact, persist - serialised per frame
@@ -24,6 +26,8 @@ popup/               recording list, build, export, delete
 shared/
   reducer.js         port of tools/reducer.py - proven equal on real captures
   timeline-index.js  sequence / event / chapter index + navigation cursor
+  reveals.js         what an opponent revealed and hid again, from commits
+  reveal-panel.js    the reveals list, shared by the in-game overlay and replay mode
 player/
   player.html        standalone viewer, CSP forbids all outbound connections
   player.css

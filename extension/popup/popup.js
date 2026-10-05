@@ -8,6 +8,16 @@ let allRows = [];
 
 document.getElementById('version').textContent = `v${chrome.runtime.getManifest().version}`;
 
+// The overlay reads this itself and follows changes live, so switching it on
+// mid-match takes effect without a reload.
+const overlayToggle = document.getElementById('overlay-toggle');
+chrome.storage.local.get('overlayEnabled')
+  .then((s) => { overlayToggle.checked = s.overlayEnabled === true; })
+  .catch(() => {});
+overlayToggle.onchange = () => {
+  chrome.storage.local.set({ overlayEnabled: overlayToggle.checked }).catch(() => {});
+};
+
 document.getElementById('open-player').onclick = () => send({ type: 'openPlayer' });
 
 document.getElementById('unstick').onclick = async (e) => {

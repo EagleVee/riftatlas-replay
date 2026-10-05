@@ -71,6 +71,10 @@ if (seqs.length === 0) {
 "
 
 echo
+echo "== reveals the opponent showed and hid again =="
+node "$ROOT/tests/reveals.mjs" "$TMP/replay.ratlas.json"
+
+echo
 echo "== replay structure (any replay) =="
 node "$ROOT/tests/replay-smoke.mjs" "$TMP/replay.ratlas.json"
 
