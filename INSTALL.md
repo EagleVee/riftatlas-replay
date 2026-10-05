@@ -1,11 +1,26 @@
 # Installing RiftAtlas Replay
 
-For testers. Chrome or any Chromium browser (Edge, Brave, Arc).
-
-Want to read or build the source instead? See `BUILD.md` in the repository —
-there is no build step, so the code you can read is exactly the code that runs.
+Chrome or any Chromium browser (Edge, Brave, Arc).
 
 ## Install
+
+Get it from the
+**[Chrome Web Store](https://chromewebstore.google.com/detail/riftatlas-replay/cbngbmmoeoonnklncjdlccggpkmicdho)**
+and press **Add to Chrome**. Chrome keeps it up to date from then on.
+
+The RiftAtlas Replay icon appears in your toolbar. Pin it — you'll use it.
+
+> Updating the extension while a match is running **stops that recording**: the
+> page's connection to the extension is torn down and only a page reload
+> restores it. Chrome usually updates on restart, so this is rare — but if a
+> match stops recording partway, that is the likely reason.
+
+> Recordings live in the extension's own storage. **Removing the extension
+> deletes them.** If you have a recording you care about, hit **Export** first.
+
+### Testing a build that isn't in the store yet
+
+If you were sent a zip of an unreleased version:
 
 1. Unzip it somewhere you can leave it — Chrome loads the extension from this
    folder every time it starts, so don't delete or move it.
@@ -14,32 +29,22 @@ there is no build step, so the code you can read is exactly the code that runs.
 4. Click **Load unpacked** and pick the unzipped folder (the one with
    `manifest.json` in it).
 
-The version currently loaded is shown beside the title. If a fix does not seem
-to have taken effect, check that first — an extension keeps running its old code
-until it is reloaded.
+To update, **unzip the new version over the old folder**, then press the reload
+arrow on the extension's card in `chrome://extensions`. Your recordings are
+kept. The version currently loaded is shown on the card — if a fix does not seem
+to have taken effect, check that first.
 
-> Reloading or updating the extension while a match is running **stops that
-> recording**: the page's connection to the extension is torn down and only a
-> page reload restores it. Update between matches, not during one.
+Chrome shows *"Disable developer mode extensions"* warnings on startup for
+anything installed this way. That is expected and safe to dismiss.
 
-## Updating
+> A zip build and the store version are **separate extensions** to Chrome, each
+> with its own recordings. Export anything you want to keep before switching
+> from one to the other, and disable whichever you're not using — with both on,
+> each records every match.
 
-**Unzip the new version over the old folder**, then press the reload arrow on
-the extension's card in `chrome://extensions`. Your recordings are kept.
-
-You can also unzip elsewhere and *Load unpacked* again — the extension has a
-pinned identity, so Chrome treats it as the same extension either way and your
-recordings follow it. Either way, remove the older entry only *after* the new
-one is working.
-
-> Recordings live in the extension's own storage. **Removing the extension
-> deletes them.** If you have a recording you care about, hit **Export** first.
-
-The RiftAtlas Replay icon appears in your toolbar. Pin it — you'll use it.
-
-> Chrome shows *"Disable developer mode extensions"* warnings on startup for
-> anything installed this way. That's expected for an unpublished extension and
-> is safe to dismiss.
+Want to read or build the source instead? See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) — there is no build step, so the code you
+can read is exactly the code that runs.
 
 ## Recording a match
 
@@ -82,16 +87,17 @@ either player, either legend, the format, and the date — so `zed`, `bertoc`,
 ## If RiftAtlas says it can't reconnect to your game
 
 Press **Back to lobby** in the popup. Replay mode borrows the client's "which
-room am I in" state, and a version before 0.2.0 could leave it behind — so the
-client kept trying to rejoin a room that only ever existed as a replay.
+room am I in" state, and if that is left behind the client keeps trying to
+rejoin a room that only ever existed as a replay.
 
 ## Watching a replay
 
-**In RiftAtlas' board** — open `play.riftatlas.com`, then popup → **In RiftAtlas
-UI**. The tab reloads and the match plays in the real client with card art and
-the game's own log. A control bar sits at the bottom.
+**In RiftAtlas' board** — with `play.riftatlas.com` open in a tab, press **Watch
+replay** on a match in the popup. The tab reloads and the match plays in the
+real client with card art and the game's own log. A control bar sits at the
+bottom.
 
-**In the standalone player** — popup → **Open player**. Plainer, but works
+**In the standalone player** — the **Player** button in the popup. Plainer, but works
 offline with RiftAtlas closed, and opens a `.ratlas.json` someone sent you, or a
 DevTools `.har` capture dropped straight onto the page.
 
@@ -131,8 +137,6 @@ writes down what the server says. There is no code path from it to RiftAtlas'
 servers — the recorder has no way to send at all.
 
 ## Known rough edges
-
-It's version 0.6.0. Expect:
 
 - **Replay mode breaks if RiftAtlas ships a UI change.** The standalone player
   keeps working regardless.
@@ -174,10 +178,9 @@ hold hundreds of actions and only play the first few. The player says so at the
 top — *"Incomplete — plays 8 of 396 recorded actions"* — rather than passing it
 off as a short game.
 
-0.3.0 recovers most of these: it resumes from the next usable snapshot instead
-of giving up at the break. Press **Build** on an older recording to try. It also
-stops the loss happening in the first place, by queueing frames until the
-extension's background worker is awake to receive them.
+Most breaks are recovered: the replay resumes from the next usable snapshot
+instead of giving up. If an older recording stops early, press **Rebuild** on it
+to try again.
 
 ## Telling us something went wrong
 

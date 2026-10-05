@@ -1,152 +1,130 @@
 # RiftAtlas Replay
 
-A Chrome extension that records RiftAtlas matches and replays them offline.
+A Chrome extension that **records every RiftAtlas match you play, automatically**,
+and lets you watch it back turn by turn — forwards and backwards, in RiftAtlas'
+own board with real card art.
 
-The **replay player works today** and plays back a real captured match offline:
-step and jump forward and backward across sequences, moves and chapters, with
-correct fog of war. The **recorder** — the part that observes a live match — is
-not built yet.
+Install it, play as normal, then click the extension icon and press **Watch
+replay**. No files to save, no DevTools, nothing to start or stop.
 
-**To watch a match you already captured**, load the extension
-([how](extension/README.md#installing-for-development)), click its icon, choose
-**Open player**, and drop your `.har` straight onto the page — it converts in
-the browser. A `.ratlas.json` replay works the same way.
+**[Add to Chrome — Chrome Web Store](https://chromewebstore.google.com/detail/riftatlas-replay/cbngbmmoeoonnklncjdlccggpkmicdho)**
 
-```bash
-tests/run.sh path/to/capture.har      # build a replay and check it end to end
-```
+Works in Chrome and other Chromium browsers (Edge, Brave, Arc).
 
-See [`extension/README.md`](extension/README.md) for controls and install steps,
-and [`INSTALL.md`](INSTALL.md) for the guide to hand a tester.
+## What it does
 
-**To share it:** `tools/package.sh` builds `dist/riftatlas-replay-<version>.zip`
-alongside the tester guide. They unzip it, open `chrome://extensions`, enable
-Developer mode, and *Load unpacked*. No store listing needed.
+- **Records automatically.** Play on `play.riftatlas.com` as normal. Every match
+  is recorded in the background; there's nothing to start or stop.
+- **Replays in RiftAtlas' own board.** Real card art, the game's own match log,
+  the layout you already know — with play, pause, step and a scrubber on top.
+- **Steps backwards as well as forwards.** Jump to any move, turn or phase. The
+  board at each point is exactly what it was, hidden cards included.
+- **Works offline too.** A standalone player opens any replay with RiftAtlas
+  closed, or even if it goes down.
+- **Shows results at a glance.** Each match lists both players, their legends,
+  the score and the winner — and best-of-three series are recorded game by game.
+- **Search your history.** Find matches by opponent, legend, format, room code or
+  date (`zed bertoc`, `bo3`, `sep`).
+- **Share a match.** Export a `.ratlas.json` file and send it to a friend or coach;
+  they open it in the player.
 
-**To work on it:** [`BUILD.md`](BUILD.md). There is no build step — the
-extension is plain ES modules with no dependencies, so what ships is exactly
-what is in the repository.
+## Getting started
+
+1. Install it from the
+   [Chrome Web Store](https://chromewebstore.google.com/detail/riftatlas-replay/cbngbmmoeoonnklncjdlccggpkmicdho)
+   and pin the icon to your toolbar.
+2. Play a match on [play.riftatlas.com](https://play.riftatlas.com/).
+3. With RiftAtlas still open, click the RiftAtlas Replay icon. Your match is
+   already there — press **Watch replay**.
+
+That's all. You never need to export, save or open a file to watch your own
+matches.
+
+### Controls
+
+| Key | Does |
+|---|---|
+| `Space` | Play / pause — about a second per move, skipping quickly through repeated actions |
+| `←` `→` | Step one change back or forward |
+| `Home` `End` | Jump to the start or the end |
+
+Drag the slider to scrub. The control bar can be dragged anywhere on the board,
+and stays where you leave it.
+
+The standalone player (the **Player** button in the popup) adds `↑` `↓` to jump between
+moves, `[` `]` between phases and turns, and `1`–`9` to jump to a turn. Drop a
+`.ratlas.json` onto it to open a replay someone sent you.
+
+## FAQ
+
+**How do I watch a replay of a RiftAtlas match?**
+Install RiftAtlas Replay from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/riftatlas-replay/cbngbmmoeoonnklncjdlccggpkmicdho).
+It records your matches automatically while you play. Afterwards, with
+play.riftatlas.com open, click the extension icon and press **Watch replay** on
+the match.
+
+**Do I need a `.ratlas.json` or `.har` file?**
+No. Your own matches are recorded and listed in the extension for you. A
+`.ratlas.json` file is only for sharing: export a match to send it to someone,
+and they open it in the player.
+
+**Can I replay a match I played before installing it?**
+No. RiftAtlas keeps match results but not the moves, so a match has to be
+recorded while it's played. Every match after you install is recorded.
+
+**Can I watch someone else's match?**
+Yes, if they export it and send you the `.ratlas.json` file. Open the **Player**
+from the extension icon and drop the file onto it.
+
+**Does it record best-of-three?**
+Yes, game by game, each with its own result.
+
+## Your data stays yours
+
+- **Nothing is uploaded.** Recordings are kept in your browser. There is no server.
+- **Observe only.** The extension watches the game connection and writes down
+  what the server says. It never sends, changes or delays a game action — it has
+  no way to.
+- **No credentials.** Login tokens are discarded before anything is stored, so an
+  exported replay is safe to share.
+- **No peeking.** A replay shows what you could see during the match. Your
+  opponent's hidden cards stay hidden.
+- **One site only.** It runs on `play.riftatlas.com` and nowhere else.
+
+Read the full [privacy policy](docs/privacy-policy.md).
+
+> Recordings live in the extension's storage, so **uninstalling deletes them**.
+> Export any match you want to keep first.
+
+## Good to know
+
+- A replay is recorded from your seat, so it shows the match from your side of
+  the table.
+- If the connection drops mid-match, the replay marks the gap rather than
+  guessing what happened in it.
+- Duel is well tested. Free-for-all, 2v2 and sealed haven't been recorded yet —
+  if one misbehaves, please report it.
+- Watching in RiftAtlas' board depends on their site, so a RiftAtlas update can
+  break it until the extension catches up. The standalone player keeps working
+  regardless.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
+
+## Something went wrong?
+
+Open the popup and press **Debug dump**. It saves
+`riftatlas-replay-debug.json` to your Downloads — no credentials in it. Attach
+that to an [issue](https://github.com/EagleVee/riftatlas-replay/issues) along
+with the room code, what you expected, and what happened.
+
+## Build it yourself or contribute
+
+The extension is plain JavaScript with no build step, so the code in this
+repository is exactly the code that runs. See
+**[`CONTRIBUTING.md`](CONTRIBUTING.md)** for how it works, how to load it from
+source, and how to run the tests.
+
+---
 
 Built with the permission of the RiftAtlas owner.
-
-## The finding this is built on
-
-The RiftAtlas match WebSocket is an event-sourced log. The server sends full
-state snapshots at a sequence number, then ordered patch commits that advance it.
-Replaying a snapshot plus its commits reproduces the server's state exactly.
-
-This is verified, not assumed. `tools/reducer.py` implements the patch semantics
-and `tools/verify.py` checks the result against the server's own snapshots:
-
-```
-$ python3 tools/har_to_jsonl.py capture.har frames.jsonl
-$ python3 tools/verify.py frames.jsonl
-sequence 8: reduced state matches snapshot
-sequence 9: reduced state matches snapshot
-resync: server re-anchored 368 -> 369; 1 commit(s) never reached this client
-371 sequences materialised (0..370), 2 snapshot checks, 0 failed
-```
-
-Byte-identical, including the 99-entry gameplay log. A replay player does not
-need to re-implement RiftAtlas' rules — it replays patches the server already
-computed.
-
-## Replay mode: their board, our data
-
-A replay can also be rendered in **RiftAtlas' own UI** — real card art, their
-match log, their layout — by answering the client's match socket locally with
-recorded frames. Their client renders a game purely from frames it receives,
-which is what spectating is, so it draws the board without knowing the frames
-are recorded.
-
-Verified working against the live client. It is deliberately fenced off from the
-recorder: see [`extension/replay-mode/README.md`](extension/replay-mode/README.md)
-for the structural argument and the known limits.
-
-## Why a recorder is necessary
-
-RiftAtlas keeps server-side match history — results, decks, scores, duration —
-but **no play-by-play**. The `gameHistory` API is `list`, `decks`, `remove`,
-`undoRemove`, `updateResult`, `setDeckPrivacy`, `saveDeckError`; there is no
-match-log, action or replay query (verified against a live signed-in session,
-2026-09-16). The action log exists only in the live socket, so observing that
-socket is the only way to get replay data.
-
-Game History does solve deck lookup: `gameHistory:decks({gameId})` returns both
-players' decklists, or `null` for a player whose account is set private.
-
-## RiftAtlas is a manual simulator
-
-There is no rules engine. The action vocabulary is board manipulation —
-`move_card`, `toggle_exhausted`, `create_token`, `set_score`,
-`take_card_from_deck` — because the players enforce the rules themselves.
-
-This matters more than it sounds. It means a captured match can be re-staged
-inside a Solo Lab room using nothing but documented UI actions: no rules to
-satisfy, no deck validation, no draw order to defeat. See
-[`docs/reconstruction-feasibility.md`](docs/reconstruction-feasibility.md) — and
-the argument there for why the replay system should *not* be built that way.
-
-## The two constraints worth knowing up front
-
-**Captures are viewer-scoped.** Opposing hidden zones arrive masked as
-`__hidden_zone__` placeholders. A replay recorded from a player seat is a
-fog-of-war replay from that seat. That is the honest artifact for reviewing your
-own play, and the format records it as such rather than hiding it.
-
-**Captures can have holes.** When the server forces a resync it re-anchors the
-client with a fresh snapshot and the intervening commits are lost. State is
-recovered; the *cause* of one transition is not. Gaps are first-class in the
-format and visible in the player.
-
-## Documentation
-
-| | |
-|---|---|
-| [`docs/protocol-analysis.md`](docs/protocol-analysis.md) | What the capture showed, and the replayability proof |
-| [`docs/protocol-reference.md`](docs/protocol-reference.md) | Frame types, patch operations, state shape |
-| [`docs/replay-format.md`](docs/replay-format.md) | The `.ratlas.json` specification |
-| [`docs/replay-navigation.md`](docs/replay-navigation.md) | Step/event/chapter model for forward-backward review |
-| [`docs/architecture.md`](docs/architecture.md) | Extension design and its trade-offs |
-| [`docs/reconstruction-feasibility.md`](docs/reconstruction-feasibility.md) | Can a match be re-staged inside Solo Lab? |
-| [`docs/open-questions.md`](docs/open-questions.md) | What one capture cannot answer |
-| [`plans/00-index.md`](plans/00-index.md) | Six-phase build plan |
-| [`BUILD.md`](BUILD.md) | Building, testing and packaging from source |
-| [`PUBLISHING.md`](PUBLISHING.md) | Chrome Web Store: visibility, cost, and what the listing needs |
-| [`INSTALL.md`](INSTALL.md) | The guide to hand a tester |
-
-## Tools and tests
-
-Python 3 and Node, no dependencies beyond the standard libraries.
-`tools/reducer.py` is the **normative** reducer; `extension/shared/reducer.js`
-must match it, and `tests/run.sh` proves it does on every capture.
-
-```bash
-python3 tools/har_to_jsonl.py capture.har frames.jsonl   # extract + redact
-python3 tools/verify.py frames.jsonl                     # prove replayability
-python3 tools/analyze.py frames.jsonl                    # protocol inventory
-python3 tools/har_to_replay.py capture.har out.ratlas.json
-tests/run.sh capture.har                                 # all of the above + JS parity
-```
-
-`tests/run.sh` also greps the built replay for JWT-shaped strings and
-`authToken`, so a credential leak fails the build rather than shipping.
-
-`tools/probe_client.mjs` (Node + Playwright) fetches the production client
-bundles and dumps the action vocabulary — re-run it after a RiftAtlas deploy to
-detect protocol drift.
-
-To take a capture: DevTools → Network → filter WS → play a match → right-click →
-*Save all as HAR with content*.
-
-## Ground rules
-
-- **Observe only.** The recorder never sends, modifies, or delays a frame. This
-  is the line between a replay tool and a cheat, and it is permanent scope, not a
-  v1 limitation.
-- **No credentials, ever.** Captures contain live JWTs and party keys. The tools
-  redact at extraction; `.gitignore` excludes `*.har` so raw captures are never
-  committed.
-- **Don't fake what wasn't captured.** Masked zones stay masked, gaps stay
-  visible, and an opponent's decklist stays `null` rather than being guessed from
-  observed cards.

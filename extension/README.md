@@ -1,5 +1,10 @@
 # Extension
 
+Developer notes for the extension source. **Using it?** Install it from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/riftatlas-replay/cbngbmmoeoonnklncjdlccggpkmicdho):
+it records every match you play on RiftAtlas automatically, and the popup lists
+them with a **Watch replay** button. No files are involved.
+
 The **recorder and the player both work**, verified against a live RiftAtlas
 room on 2026-09-16: the extension recorded a real Solo Lab match, finalised it,
 and the resulting replay loaded and navigated.
@@ -71,12 +76,13 @@ a real room:
   RiftAtlas' own board with real art, their match log and their layout. Needs
   their site, online and signed in, and breaks when they change the client.
 
-Replay mode is started from the popup: build a replay, then **In RiftAtlas UI**.
+Replay mode is what **Watch replay** in the popup opens, for any recorded match.
 
-## Opening a replay
+## Opening a replay file
 
-Click the toolbar icon, then **Open player** — or go straight to
-`chrome-extension://<id>/player/player.html`.
+Recorded matches need no file — they are listed in the popup. Files are for
+replays someone sent you, and for development. Click the toolbar icon, then
+**Player** — or go straight to `chrome-extension://<id>/player/player.html`.
 
 The player takes either:
 
@@ -153,7 +159,5 @@ cannot get it wrong. `tests/index-shape.mjs` asserts the round trip.
 
 ## Still to build
 
-- **Recorder** (phase 3) — main-world `WebSocket` observer, IndexedDB buffering,
-  finalisation. `tools/har_to_replay.py` is the reference for what it must emit.
 - **Card catalog** — bundling it gives real card text offline.
 - **Think-time heat band** on the scrubber.
