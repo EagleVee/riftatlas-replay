@@ -25,8 +25,25 @@ button:hover { border-color: #74efff; }
 #overlay input:checked + .track::after { transform: translateX(13px); background: #74efff; }
 #overlay input:focus-visible + .track { outline: 2px solid #74efff; outline-offset: 2px; }
 
-#note { color: #8698ab; font-size: 11.5px; margin: 6px 0 8px; }
-#tools { display: flex; gap: 6px; margin: 0 0 10px; }
+/* Note and tools on the left, the coffee link on the right, level with the tools. */
+#bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  margin: 6px 0 10px; }
+#note { color: #8698ab; font-size: 11.5px; margin: 0 0 6px; }
+#tools { display: flex; gap: 6px; }
+/* Just Buy Me a Coffee's dark-UI logo, as riftatlas.com shows it. */
+#coffee { position: relative; flex: 0 0 auto; display: flex; border-radius: 4px; }
+#coffee img { height: 28px; width: auto; filter: drop-shadow(0 0 4px rgba(247,220,0,.2));
+  transition: filter .15s; }
+#coffee:hover img { filter: drop-shadow(0 0 6px rgba(247,220,0,.45)); }
+#coffee:focus-visible { outline: 2px solid #74efff; outline-offset: 2px; }
+/* Shown at once beside the icon; the native title tooltip takes too long. It
+   opens leftwards because the icon sits on the popup's right edge. */
+#coffee .tip { position: absolute; right: calc(100% + 8px); top: 50%;
+  transform: translate(4px, -50%); padding: 4px 8px; border: 1px solid rgba(255,221,0,.35);
+  border-radius: 4px; background: #121a24; color: #ffdd00; font-size: 11.5px;
+  white-space: nowrap; pointer-events: none; opacity: 0;
+  transition: opacity .12s, transform .12s; }
+#coffee:hover .tip, #coffee:focus-visible .tip { opacity: 1; transform: translate(0, -50%); }
 #tools button { font-size: 11.5px; }
 
 #search { width: 100%; box-sizing: border-box; margin: 0 0 8px; padding: 5px 8px;
