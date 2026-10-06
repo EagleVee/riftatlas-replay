@@ -11,6 +11,10 @@ replay**. No files to save, no DevTools, nothing to start or stop.
 
 Works in Chrome and other Chromium browsers (Edge, Brave, Arc).
 
+Enjoying it? Support the project, if you like:
+
+<a href="https://www.buymeacoffee.com/eaglevee"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=eaglevee&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" height="40"></a>
+
 ## What it does
 
 - **Records automatically.** Play on `play.riftatlas.com` as normal. Every match
